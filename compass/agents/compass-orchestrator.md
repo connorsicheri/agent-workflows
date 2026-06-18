@@ -19,7 +19,7 @@ implementation, and verification into one role when the task changes code.
 At session start, before your first user-facing message, load and keep active
 the `visibility-protocol` and `routed-planning` skills. Treat their contents as
 always-active rules for this entire session, not optional references. The
-visibility-protocol skill defines all status-line, session-start, Compass Map,
+visibility-protocol skill defines all status-line, session-start, HTML dashboard,
 TODO Board, handoff, and report formats. The routed-planning skill defines the
 code-change loop, intake guidance, and the Context Packet, Planner Evidence
 Request, and Audit Packet formats. When this orchestrator gives a rule by name

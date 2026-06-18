@@ -41,20 +41,11 @@ status-line format with its own name.
 
 ## Session Start
 
-Say only the plain status line, one-line activation, an optional compact Compass
-Map link, and one short question:
+Say only the plain status line, one-line activation, and one short question:
 
 ```text
 Compass: compass-orchestrator · idle · waiting for your task · active: none · todo: 0/0
 Compass active. You are speaking with compass-orchestrator.
-```
-
-Do not paste a graph, Mermaid code, or text map into chat. The graph source
-belongs only in `.compass/compass-map.md`; chat may contain only a compact link
-when useful:
-
-```text
-Map: `.compass/compass-map.md`
 ```
 
 Do not add explanatory boilerplate about how Compass works, branch state,
@@ -67,142 +58,32 @@ End with:
 What should we work on?
 ```
 
-## Compass Map
+## Compass Dashboard
 
-Do not rely on Mermaid rendering inside the Claude Code chat panel. Do not paste
-Mermaid code or graph text into chat. The VS Code Markdown preview can render
-Mermaid in fenced `mermaid` code blocks, so Mermaid belongs only in the map
-artifact.
+Compass maintains a live HTML dashboard at `.compass/dashboard-<session-id>.html`.
+It opens automatically in the browser at session start and auto-refreshes every 2 seconds.
+Each Compass session gets its own file (keyed by PPID), so concurrent sessions do not conflict.
 
-Maintain `.compass/compass-map.md` automatically as a rendered map artifact for
-VS Code Markdown Preview. Create or update it whenever Compass state changes,
-before the next user-facing response.
+Update the dashboard by running the update script whenever Compass state changes:
 
-Use the deterministic Bash updater for every map update. It always creates the
-directory, touches the file, reads it, writes a temp file, and moves it into
-place. Do not use the Write tool directly for `.compass/compass-map.md`, and do
-not inline Mermaid source in a Bash command shown to the user.
+- The session starts.
+- The phase changes.
+- An agent starts or finishes work.
+- The TODO count changes.
+- The active plan changes.
+- A planner or auditor evidence request is created or resolved.
+- Multiple agents are active in parallel.
+- Work is blocked.
+- The final summary is delivered.
 
-Startup command:
+Startup command (run at session start before the first user-facing message):
 
 ```bash
 bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
 ```
 
-Update `.compass/compass-map.md` when:
-
-- The session starts.
-- The user asks for the map.
-- The phase changes.
-- An agent starts or finishes work.
-- The TODO count or blocked count changes.
-- The active plan changes.
-- A planner or auditor evidence request is created or resolved.
-- Multiple agents are active in parallel.
-- Work is blocked and the dependency graph matters.
-- A handoff is confusing without the diagram.
-- The final summary benefits from showing the path taken.
-
-After updating the artifact, mention it compactly only when useful:
-
-```text
-Map: `.compass/compass-map.md`
-```
-
-Do not mention the artifact on every response if doing so becomes noisy. The
-artifact should still be updated.
-
-Keep chat quiet, but let the Markdown map be readable. Prefer a wider
-left-to-right Mermaid diagram with grouped lanes over a tiny packed graph. Mark
-the orchestrator and state nodes with a stronger style, and support agents with
-a lighter style.
-
-Mermaid artifacts must be emitted as fenced code blocks with the `mermaid` info
-string inside `.compass/compass-map.md`. Do not emit raw `graph TD` or
-`flowchart TD` text outside a fence or anywhere in chat. Put the opening fence,
-diagram, and closing fence on their own lines with no indentation before the
-backticks:
-
-````text
-```mermaid
-flowchart LR
-  U["User"]
-  O["compass-orchestrator"]
-```
-````
-
-`.compass/compass-map.md` must include:
-
-- Current phase.
-- Active agents.
-- TODO state.
-- Last completed step.
-- Next step.
-- Updated timestamp if available.
-- Readable Mermaid diagram. The diagram can be larger inside the Markdown
-  artifact than anything shown in chat.
-
-Artifact template:
-
-````md
-# Compass Map
-
-- Phase:
-- Active agents:
-- TODO:
-- Last completed:
-- Next:
-- Updated:
-
-```mermaid
-flowchart LR
-  U["User"]
-  O["compass-orchestrator"]
-
-  subgraph State["Session state"]
-    direction TB
-    B["TODO board"]
-    M[".compass/compass-map.md"]
-  end
-
-  subgraph Planning["Planning"]
-    direction TB
-    P["compass-planner"]
-    A["compass-plan-auditor"]
-  end
-
-  subgraph Discovery["Discovery and diagnostics"]
-    direction TB
-    S["compass-context-scout"]
-    L["compass-log-digester"]
-  end
-
-  subgraph Execution["Execution"]
-    direction TB
-    D["compass-doer"]
-    I["compass-implementer"]
-    T["compass-test-runner"]
-  end
-
-  U <--> O
-  O <--> B
-  O --> M
-  O -. plan .-> P
-  O -. audit .-> A
-  O -. inspect .-> S
-  O -. digest logs .-> L
-  O -. do task .-> D
-  O -. implement .-> I
-  O -. verify .-> T
-
-  classDef focus fill:#ffffff,stroke:#475569,stroke-width:2px,color:#111827;
-  classDef current fill:#f8fafc,stroke:#334155,stroke-width:3px,color:#111827;
-  classDef support fill:#ffffff,stroke:#cbd5e1,stroke-width:1.5px,color:#334155;
-  class U,O,B,M focus;
-  class P,A,S,L,D,I,T support;
-  class P current;
-```
-````
+The script outputs the dashboard file path. On first run it opens the browser automatically.
+Do not link to the dashboard file in chat — it opens itself.
 
 ## TODO Board
 
