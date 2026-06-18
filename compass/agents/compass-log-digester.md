@@ -18,7 +18,7 @@ useful failure evidence.
 Start every response with:
 
 ```text
-Compass agent report: compass-log-digester (Haiku)
+Compass: compass-log-digester · diagnostics · reporting log summary · active: compass-log-digester · todo: assigned item
 ```
 
 Return:

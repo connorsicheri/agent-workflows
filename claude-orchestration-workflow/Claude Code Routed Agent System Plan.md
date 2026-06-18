@@ -96,12 +96,15 @@ compass/
   agents/
     compass-orchestrator.md
     compass-planner.md
+    compass-plan-auditor.md
     compass-implementer.md
     compass-context-scout.md
     compass-log-digester.md
     compass-test-runner.md
   skills/
     routed-planning/
+      SKILL.md
+    plan-audit/
       SKILL.md
     debugging/
       SKILL.md
@@ -174,6 +177,7 @@ normal. Compass sessions become routed workspaces.
 | --- | --- | --- | --- |
 | `compass-orchestrator` | Sonnet | Main session agent; routes work and talks with the user | Read, Bash, Agent, skills |
 | `compass-planner` | Opus or Sonnet | Creates user-aligned plans and asks clarifying questions | Read-only |
+| `compass-plan-auditor` | Opus | Audits plans against stored context, evidence, assumptions, risks, and stop conditions | Read-only |
 | `compass-implementer` | Sonnet | Implements the approved plan | Edit/write/test |
 | `compass-context-scout` | Haiku | Broad repo search and compressed evidence | Read-only |
 | `compass-log-digester` | Haiku | Summarizes logs, stack traces, and noisy output | Read-only |
@@ -238,18 +242,28 @@ Your job is to coordinate the work, not to silently do every role yourself.
 For code-changing tasks:
 
 1. Understand the user's requested outcome.
-2. State assumptions and ambiguity.
-3. Use `compass-context-scout` when repository context is needed.
-4. Use `compass-log-digester` for noisy logs or stack traces.
-5. Ask `compass-planner` to create or refine the plan.
-6. Discuss the plan with the user until aligned.
-7. Wait for approval before implementation unless the user explicitly asked to
+2. Start with a short intake chat before launching context agents unless the
+   user explicitly asks for immediate repository inspection.
+3. State assumptions and ambiguity.
+4. Use `compass-context-scout` when repository context is needed and intake has
+   produced enough search guidance, or when the user asks for deep search.
+5. Use `compass-log-digester` for noisy logs or stack traces.
+6. Ask `compass-planner` to create or refine the plan.
+7. If requested or high-risk, ask `compass-plan-auditor` to audit the plan.
+8. Discuss the plan with the user until aligned.
+9. Wait for approval before implementation unless the user explicitly asked to
    proceed without another approval gate.
-8. Use `compass-implementer` to make changes.
-9. Use `compass-test-runner` and the verification gate before final response.
+10. Use `compass-implementer` to make changes.
+11. Use `compass-test-runner` and the verification gate before final response.
 
 You may ask the user clarifying questions. Prefer one or two high-value
 questions over a long questionnaire.
+
+Do not launch context gathering reflexively. Use intake when the user may know
+the relevant files, routes, feature names, error text, recent changes, expected
+behavior, non-goals, or constraints. Launch `compass-context-scout` after those
+hints are captured, when the user asks for investigation, when the user does not
+know where to look, or when planner/auditor evidence is required.
 
 For trivial non-code answers, answer directly.
 
@@ -489,7 +503,8 @@ Use for feature work, code changes, and general implementation tasks.
 Responsibilities:
 
 - Classify the request.
-- Gather context if needed.
+- Run intake before search when user hints could narrow the work.
+- Gather context only when needed or requested.
 - Ask planner for a plan.
 - Align with the user.
 - Hand off to implementer after approval.
@@ -525,12 +540,98 @@ Planner must define:
 
 Use throughout the Compass session to make routing visible.
 
-Required markers:
+Compass uses a quiet inline status line by default:
 
 ```text
-Compass active. You are speaking with compass-orchestrator (Sonnet).
-Compass phase: planning
-Compass handoff: compass-context-scout (Haiku)
+Compass: compass-orchestrator · planning · relaying planner update · active: compass-planner · todo: 1/4
+```
+
+The status line should stay plain and low-emphasis; it should never use HTML
+tags, Markdown emphasis, a pipe-delimited banner, heading, table, or multi-line
+panel. Claude Code chat may not render Mermaid diagrams. VS Code Markdown
+Preview does render Mermaid fenced code blocks, so Compass treats Mermaid as a
+Markdown preview artifact. Compass should not paste Mermaid, graph code, or text
+maps into chat.
+
+Compass automatically maintains the rendered map artifact:
+
+```text
+.compass/compass-map.md
+```
+
+The orchestrator should update it whenever Compass state changes: session
+start, phase changes, agent starts/finishes, TODO state changes, plan changes,
+evidence requests, audit requests, parallel work, blocked states, and final
+summary. Open it with VS Code Markdown Preview for the rendered diagram. In
+chat, Compass may link it quietly as `Map: .compass/compass-map.md` when useful;
+the graph source should stay only in the Markdown artifact.
+
+Compass updates the map through one deterministic Bash path instead of choosing
+between file tools at runtime:
+
+```bash
+bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
+```
+
+The updater creates `.compass`, touches and reads `compass-map.md`, writes a
+temporary file, then moves it into place.
+
+`compass-orchestrator` owns the master Compass TODO Board. Subagents receive
+assigned TODO items and focused Context Packets, then report status back.
+
+Expanded TODO Board example:
+
+```text
+Compass TODO Board
+- [done] Context scan checkout validation paths
+- [active] Planner drafts scoped implementation plan
+- [queued] Implement validation helper
+- [queued] Add validation tests
+- [blocked] Await user approval
+```
+
+Context Packet example:
+
+```md
+## Context Packet
+
+- Parent task:
+- Assigned TODO item:
+- Agent:
+- Model tier:
+- Goal:
+- In scope:
+- Out of scope:
+- Relevant files/evidence:
+- Constraints:
+- Stop conditions:
+- Expected return format:
+```
+
+The planner can request more context before producing a plan:
+
+```md
+## Planner Evidence Request
+
+- Question to answer:
+- Why it matters:
+- Suggested agent: compass-context-scout
+- Suggested scout target:
+- Files, symbols, or search terms:
+- Constraints:
+- Stop condition:
+- Expected evidence:
+```
+
+The orchestrator owns that loop: it adds a TODO item, sends a targeted Context
+Packet to the right agent, and returns compressed evidence to the planner. The
+planner/evidence loop repeats until the planner can produce a good plan, asks
+the user a question, or reaches a stop condition.
+
+Required handoff markers:
+
+```text
+Compass handoff: compass-context-scout
 Purpose: find the relevant files.
 Mode: sequential
 Compass return: compass-context-scout
@@ -608,7 +709,7 @@ Compass responds by taking the role of orchestrator and asking what the user
 wants to work on. It must explicitly announce:
 
 ```text
-Compass active. You are speaking with compass-orchestrator (Sonnet).
+Compass active. You are speaking with compass-orchestrator.
 ```
 
 ### User describes a task
@@ -683,19 +784,23 @@ Build in this order:
    - Verify: broad search returns compressed evidence.
 5. Create `compass/agents/compass-planner.md`.
    - Verify: planner produces user-aligned plans and does not edit files.
-6. Create `compass/agents/compass-implementer.md`.
+6. Create `compass/agents/compass-plan-auditor.md`.
+   - Verify: auditor reviews plans without editing files.
+7. Create `compass/agents/compass-implementer.md`.
    - Verify: implementer follows an approved plan only.
-7. Create `compass/agents/compass-test-runner.md`.
+8. Create `compass/agents/compass-test-runner.md`.
    - Verify: focused tests are summarized.
-8. Create `compass/agents/compass-log-digester.md`.
+9. Create `compass/agents/compass-log-digester.md`.
    - Verify: noisy logs are compressed.
-9. Create internal workflow skills.
+10. Create internal workflow skills.
    - Verify: orchestrator can use them as procedural guidance.
-10. Create `compass/skills/visibility-protocol/SKILL.md`.
+11. Create `compass/skills/plan-audit/SKILL.md`.
+    - Verify: user can trigger "audit the plan".
+12. Create `compass/skills/visibility-protocol/SKILL.md`.
     - Verify: session start, handoff, return, and parallel markers are defined.
-11. Add `README.md`.
+13. Add `README.md`.
     - Verify: setup and session usage are clear.
-12. Test locally with the plugin loader.
+14. Test locally with the plugin loader.
     - Verify: agents appear, Compass starts, and routing works.
 
 ## 17. Validation Prompts
@@ -726,6 +831,19 @@ Expected behavior:
 - Planner creates a plan.
 - Orchestrator discusses plan with the user.
 - No implementation happens before approval.
+
+### Plan audit
+
+```text
+Audit the plan before implementation.
+```
+
+Expected behavior:
+
+- Orchestrator builds an Audit Packet.
+- `compass-plan-auditor` reviews the plan against stored context and evidence.
+- Orchestrator routes pass, revision, more-context, or block results before
+  implementation.
 
 ### Context-cost check
 

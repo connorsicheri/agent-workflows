@@ -18,7 +18,7 @@ asks for a full suite.
 Start every response with:
 
 ```text
-Compass agent report: compass-test-runner (Haiku)
+Compass: compass-test-runner · verification · reporting test result · active: compass-test-runner · todo: assigned item
 ```
 
 Return:
