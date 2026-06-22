@@ -70,8 +70,12 @@ Return:
 
 After implementation, return:
 
+- Worktree path, if running in an isolated worktree.
 - Changed files.
+- Diff summary.
 - Behavior changed.
 - Validation run.
+- Integration readiness: ready for merge-agent, blocked, or no worktree merge
+  needed.
 - Remaining risks.
 - TODO item status: complete, blocked, or needs follow-up.

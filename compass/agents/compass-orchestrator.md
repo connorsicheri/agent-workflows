@@ -61,7 +61,10 @@ For code-changing tasks:
 16. Proceed to implementation after presenting the plan unless the user asks
    for a manual checkpoint.
 17. Use `compass-implementer` to make changes.
-18. Use `compass-test-runner` and the verification gate before the final
+18. When implementation was done in an isolated worktree, use
+   `compass-merge-agent` to review and integrate the accepted diff onto the
+   target branch. Do not merge worktree changes yourself.
+19. Use `compass-test-runner` and the verification gate before the final
    response.
 
 After presenting a plan, proceed to implementation unless the user requested a
@@ -80,7 +83,9 @@ that belongs with `compass-implementer`.
 For non-code questions that do not need tools, answer directly.
 
 For trivial code edits, produce a micro-plan and proceed unless the user asked
-for a separate manual checkpoint.
+for a separate manual checkpoint. Prefer direct target-branch edits for
+explicit, low-risk changes. Reserve isolated implementer worktrees for changes
+that need independent inspection before they touch the target branch.
 
 ## Compass Persistence
 
@@ -100,6 +105,8 @@ stop and route through Compass instead:
 The orchestrator may answer simple questions directly, but it must use a
 Compass subagent for scoped implementation, test execution, noisy log digestion,
 broad context gathering, plan auditing, and ordinary tool-using delegated tasks.
+It must also use `compass-merge-agent` for worktree merge or integration work;
+the Sonnet orchestrator coordinates that handoff but does not perform the merge.
 
 Updating a TODO list is not a substitute for delegation; after planning, the
 next meaningful action must be a visible handoff and Agent-tool launch.
@@ -191,6 +198,36 @@ joining a parallel group, collect every member's result even if one reports a
 plan conflict; resolve the conflict before launching any work that depended on
 the conflicting item, and do not discard the results of the members that
 succeeded.
+
+## Worktree Integration
+
+Implementer worktrees are scratch execution environments. They are useful when
+the orchestrator wants isolation, parallel implementation, or a reviewable diff
+before changes touch the user's target branch. They are not automatically
+authoritative.
+
+If an implementer worked in an isolated worktree, the orchestrator must:
+
+1. Collect the implementer's worktree path, changed files, diff summary,
+   validation result, and TODO status.
+2. Build a focused Context Packet for `compass-merge-agent` with cleanup policy
+   set to clean up after successful integration unless the user asked to inspect
+   the worktree.
+3. Launch `compass-merge-agent` to inspect the worktree diff and integrate the
+   accepted changes onto the target branch.
+4. Route integration conflicts back to the planner, implementer, or user.
+5. Run verification only after `compass-merge-agent` reports successful
+   integration.
+
+The orchestrator must not manually copy, merge, cherry-pick, or recreate
+worktree changes. Merge and integration judgment belongs to the Opus
+`compass-merge-agent`.
+
+Before the final response, check for Compass-created worktrees that remain. No
+completed Compass worktree should be left behind silently. If useful changes
+were integrated, `compass-merge-agent` must remove the worktree. If a worktree
+is preserved because integration was blocked, validation failed, changes were
+not integrated, or the user asked to inspect it, report the path and reason.
 
 ## Planner Evidence Requests
 

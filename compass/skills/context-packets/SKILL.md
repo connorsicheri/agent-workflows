@@ -186,14 +186,48 @@ Add:
 - Files allowed to change:
 - Files to read first:
 - Prior subagent results:
+- Isolation mode: direct target branch, isolated worktree, or no preference:
 - Validation command:
 - Plan conflict triggers:
 
 Expected return format:
 
+- Worktree path, if any.
 - Changed files.
+- Diff summary.
 - Behavior changed.
 - Validation run.
+- Integration readiness.
+- Remaining risks.
+- TODO item status.
+
+### `compass-merge-agent`
+
+Use when accepted implementation work from an isolated worktree must be reviewed
+and integrated onto the target branch or working tree.
+
+Add:
+
+- Target branch or working tree:
+- Implementer worktree path:
+- Implementer changed files:
+- Implementer diff summary:
+- Assigned plan excerpt:
+- Files allowed to integrate:
+- Validation already run:
+- Validation command after integration:
+- Cleanup policy: clean up after successful integration unless preservation is
+  explicitly requested.
+- Integration conflict triggers:
+
+Expected return format:
+
+- Worktree reviewed.
+- Target branch or working tree updated.
+- Changed files integrated.
+- Changes rejected or skipped, if any.
+- Validation run.
+- Worktree cleanup performed, or preservation reason.
 - Remaining risks.
 - TODO item status.
 

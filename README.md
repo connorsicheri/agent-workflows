@@ -106,6 +106,7 @@ declares preferred model tiers internally:
 - `compass-planner`: Opus.
 - `compass-plan-auditor`: Opus.
 - `compass-implementer`: Sonnet.
+- `compass-merge-agent`: Opus.
 - `compass-context-scout`: Haiku.
 - `compass-log-digester`: Haiku.
 - `compass-test-runner`: Haiku.

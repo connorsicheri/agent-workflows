@@ -76,6 +76,8 @@ The role boundaries are:
 - `compass-planner`: read-only planning and user-alignment support.
 - `compass-plan-auditor`: independent read-only plan audit.
 - `compass-implementer`: scoped implementation from an assigned plan.
+- `compass-merge-agent`: Opus integration of accepted worktree changes onto the
+  target branch.
 - `compass-log-digester`: noisy log and stack trace compression.
 - `compass-test-runner`: focused validation and test summaries.
 
@@ -93,6 +95,13 @@ implementing" narration or ask for another checkpoint by default. The orchestrat
 announces a visible handoff and launches `compass-implementer` with the planned
 tasks and focused Context Packet. For ordinary tool-using tasks that are not
 implementation plans, it launches `compass-doer`.
+
+When an implementer uses an isolated worktree, Compass routes the result through
+`compass-merge-agent` before verification. The orchestrator coordinates the
+handoff, but Opus owns merge judgment and integration back onto the target
+branch. After successful integration, `compass-merge-agent` removes the
+Compass-created worktree by default. Preserved worktrees must be reported with
+the reason they remain.
 
 ## Visibility
 

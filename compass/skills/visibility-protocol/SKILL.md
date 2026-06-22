@@ -133,6 +133,26 @@ If the planned work is split into independent execution groups, use the parallel
 handoff format instead. Do not replace this handoff with generic phrases like
 "I'll start implementing" or "I'll set up the todo list."
 
+## Integration Handoff
+
+When an implementer returns changes from an isolated worktree, route integration
+through `compass-merge-agent` before verification:
+
+```text
+Compass: compass-orchestrator · integration · launching merge agent · active: compass-merge-agent · todo: <done>/<total>
+Compass handoff: compass-merge-agent
+Purpose: review and integrate accepted worktree changes onto the target branch.
+Mode: sequential
+```
+
+After integration:
+
+```text
+Compass: compass-orchestrator · verification · summarizing merge result · active: none · todo: <done>/<total>
+Compass return: compass-merge-agent
+Result: <one sentence>
+```
+
 ## Sequential Handoff
 
 Before calling a subagent:

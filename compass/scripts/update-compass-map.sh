@@ -78,7 +78,7 @@ updated_html="$(html_escape "$updated")"
 case "$phase" in
   context)                        phase_class="context" ;;
   planning|plan-audit)            phase_class="planning" ;;
-  implementation)                 phase_class="implementation" ;;
+  implementation|integration)     phase_class="implementation" ;;
   verification)                   phase_class="verification" ;;
   *)                              phase_class="idle" ;;
 esac
@@ -93,6 +93,7 @@ declare -a AGENTS=(
   "compass-log-digester|log-digester|digests logs"
   "compass-doer|doer|delegated tasks"
   "compass-implementer|implementer|executes plans"
+  "compass-merge-agent|merge-agent|integrates worktrees"
   "compass-test-runner|test-runner|runs tests"
 )
 

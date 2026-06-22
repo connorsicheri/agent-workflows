@@ -32,12 +32,37 @@ Use this workflow for code-changing tasks inside a Compass session.
     `context-packets` skill.
 14. Use `compass-implementer` to execute the plan, launching write-safe groups
     in parallel.
-15. Use `compass-test-runner` or `compass-log-digester` for validation output.
-16. Apply the verification gate before final response.
+15. If any implementer ran in an isolated worktree, use `compass-merge-agent`
+    to review and integrate accepted changes onto the target branch. The
+    orchestrator coordinates this handoff but does not perform the merge.
+16. Use `compass-test-runner` or `compass-log-digester` for validation output.
+17. Apply the verification gate before final response.
 
 The orchestrator owns the master TODO Board. Subagents receive assigned TODO
 items and report status back; they do not mutate or reprioritize the master
 board.
+
+## Worktree Integration
+
+Treat isolated implementer worktrees as scratch state. The source of truth is
+the user's target branch or working tree after accepted changes have been
+integrated.
+
+When an implementer returns worktree output, the next implementation step is a
+sequential handoff to `compass-merge-agent` with:
+
+- Target branch or working tree.
+- Implementer worktree path.
+- Changed files and diff summary.
+- Allowed files and assigned plan excerpt.
+- Validation already run by the implementer.
+- Cleanup policy for the worktree. Default to clean up after successful
+  integration unless the user asked to inspect the worktree.
+
+`compass-merge-agent` owns integration judgment, conflict handling, and applying
+accepted changes. It also owns cleanup for Compass-created worktrees after
+successful integration. The orchestrator must not manually copy, cherry-pick,
+merge, or clean up worktree changes.
 
 ## Parallel Execution
 
