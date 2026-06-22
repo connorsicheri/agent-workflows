@@ -10,7 +10,7 @@ Use this workflow for behavior-preserving changes.
 2. Send compressed evidence to `compass-planner`.
 3. Have the planner define the refactor boundary.
 4. Present the plan to the user.
-5. After approval, use `compass-implementer`.
+5. Use `compass-implementer`.
 6. Use `compass-test-runner` for validation.
 
 The planner must define:

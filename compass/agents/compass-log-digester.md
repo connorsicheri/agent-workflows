@@ -30,5 +30,5 @@ Return:
 5. Suggested next diagnostic step.
 6. Whether the issue appears deterministic or flaky, if inferable.
 
-Do not paste full logs. Do not run destructive commands. If a command requires
-approval, let the parent session handle it.
+Do not paste full logs. Do not run destructive commands. If a command is blocked
+by host permissions, report that to the parent session.

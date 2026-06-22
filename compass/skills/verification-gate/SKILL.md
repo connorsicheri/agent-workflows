@@ -8,7 +8,7 @@ Use this after implementation and before the final response.
 
 Required checks:
 
-1. Compare the implementation against the approved plan.
+1. Compare the implementation against the assigned plan.
 2. Confirm no unrelated files were changed.
 3. Run focused tests when available.
 4. Use `compass-test-runner` for verbose test output.
@@ -31,7 +31,7 @@ Final report format:
 
 ## Plan Adherence
 
-- Followed approved plan:
+- Followed assigned plan:
 - Deviations:
 
 ## Remaining Risks

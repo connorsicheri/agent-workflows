@@ -178,7 +178,7 @@ normal. Compass sessions become routed workspaces.
 | `compass-orchestrator` | Sonnet | Main session agent; routes work and talks with the user | Read, Bash, Agent, skills |
 | `compass-planner` | Opus or Sonnet | Creates user-aligned plans and asks clarifying questions | Read-only |
 | `compass-plan-auditor` | Opus | Audits plans against stored context, evidence, assumptions, risks, and stop conditions | Read-only |
-| `compass-implementer` | Sonnet | Implements the approved plan | Edit/write/test |
+| `compass-implementer` | Sonnet | Implements the assigned plan | Edit/write/test |
 | `compass-context-scout` | Haiku | Broad repo search and compressed evidence | Read-only |
 | `compass-log-digester` | Haiku | Summarizes logs, stack traces, and noisy output | Read-only |
 | `compass-test-runner` | Haiku or Sonnet | Runs focused validation and summarizes results | Bash/read-only |
@@ -250,9 +250,9 @@ For code-changing tasks:
 5. Use `compass-log-digester` for noisy logs or stack traces.
 6. Ask `compass-planner` to create or refine the plan.
 7. If requested or high-risk, ask `compass-plan-auditor` to audit the plan.
-8. Discuss the plan with the user until aligned.
-9. Wait for approval before implementation unless the user explicitly asked to
-   proceed without another approval gate.
+8. Present the plan to the user.
+9. Proceed to implementation after presenting the plan unless the user asks for
+   a manual checkpoint.
 10. Use `compass-implementer` to make changes.
 11. Use `compass-test-runner` and the verification gate before final response.
 
@@ -267,8 +267,8 @@ know where to look, or when planner/auditor evidence is required.
 
 For trivial non-code answers, answer directly.
 
-For trivial code edits, produce a micro-plan and ask whether to proceed if the
-user has not already authorized implementation.
+For trivial code edits, produce a micro-plan and proceed unless the user asked
+for a separate manual checkpoint.
 
 Stop and return to the user if:
 
@@ -373,17 +373,16 @@ compass/agents/compass-implementer.md
 
 Purpose:
 
-The implementer executes only the approved plan. It does not silently re-plan.
+The implementer executes the assigned plan. It does not silently re-plan.
 
 Frontmatter sketch:
 
 ```md
 ---
 name: compass-implementer
-description: Implements approved Compass plans with minimal scope creep.
+description: Implements assigned Compass plans with minimal scope creep.
 tools: Read, Edit, Write, Bash, Glob, Grep
 model: sonnet
-permissionMode: default
 effort: medium
 maxTurns: 14
 ---
@@ -392,12 +391,12 @@ maxTurns: 14
 Core rules:
 
 - Restate the assigned plan before editing.
-- Touch only files included in the approved plan unless a stop condition is
+- Touch only files included in the assigned plan unless a stop condition is
   reached.
 - Make the smallest viable diff.
 - Do not introduce unrelated cleanup.
-- Do not change public APIs, schemas, migrations, auth, permissions, or
-  security-sensitive code unless explicitly approved.
+- Proceed when the assigned plan includes public APIs, schemas, migrations,
+  auth, permissions, or security-sensitive code.
 - Stop on plan conflicts and report evidence.
 - Run focused validation when available.
 
@@ -408,7 +407,7 @@ Plan conflict report:
 
 - What changed:
 - Evidence:
-- Why the approved plan may be invalid:
+- Why the assigned plan may be invalid:
 - Recommended next step:
 ```
 
@@ -548,33 +547,29 @@ Compass: compass-orchestrator · planning · relaying planner update · active: 
 
 The status line should stay plain and low-emphasis; it should never use HTML
 tags, Markdown emphasis, a pipe-delimited banner, heading, table, or multi-line
-panel. Claude Code chat may not render Mermaid diagrams. VS Code Markdown
-Preview does render Mermaid fenced code blocks, so Compass treats Mermaid as a
-Markdown preview artifact. Compass should not paste Mermaid, graph code, or text
-maps into chat.
+panel.
 
-Compass automatically maintains the rendered map artifact:
+Compass automatically maintains the live dashboard artifact:
 
 ```text
-.compass/compass-map.md
+.compass/dashboard.html
 ```
 
 The orchestrator should update it whenever Compass state changes: session
 start, phase changes, agent starts/finishes, TODO state changes, plan changes,
 evidence requests, audit requests, parallel work, blocked states, and final
-summary. Open it with VS Code Markdown Preview for the rendered diagram. In
-chat, Compass may link it quietly as `Map: .compass/compass-map.md` when useful;
-the graph source should stay only in the Markdown artifact.
+summary. The dashboard opens automatically at session start and refreshes every
+2 seconds.
 
-Compass updates the map through one deterministic Bash path instead of choosing
-between file tools at runtime:
+Compass updates the dashboard through one deterministic Bash path instead of
+choosing between file tools at runtime:
 
 ```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
+bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
 ```
 
-The updater creates `.compass`, touches and reads `compass-map.md`, writes a
-temporary file, then moves it into place.
+The updater creates `.compass`, writes a temporary dashboard file, then moves it
+into place.
 
 `compass-orchestrator` owns the master Compass TODO Board. Subagents receive
 assigned TODO items and focused Context Packets, then report status back.
@@ -587,7 +582,7 @@ Compass TODO Board
 - [active] Planner drafts scoped implementation plan
 - [queued] Implement validation helper
 - [queued] Add validation tests
-- [blocked] Await user approval
+- [blocked] Resolve plan conflict
 ```
 
 Context Packet example:
@@ -665,7 +660,7 @@ Use after implementation and before final response.
 
 Required checks:
 
-1. Compare implementation against approved plan.
+1. Compare implementation against the assigned plan.
 2. Confirm no unrelated files changed.
 3. Run focused tests when available.
 4. Summarize unverified assumptions.
@@ -686,7 +681,7 @@ Final report format:
 
 ## Plan Adherence
 
-- Followed approved plan:
+- Followed assigned plan:
 - Deviations:
 
 ## Remaining Risks
@@ -738,22 +733,20 @@ Compass flow:
 The user can say:
 
 ```text
-Proceed without a separate approval gate unless this touches APIs, schemas,
-auth, permissions, migrations, or more than three files.
+Proceed after the plan unless I explicitly ask for a manual checkpoint.
 ```
 
-Compass may then show a micro-plan and continue automatically for low-risk
-work.
+Compass may then show a micro-plan and continue automatically.
 
 ### User wants strict control
 
 The user can say:
 
 ```text
-Strict mode. Show me every plan and wait for approval before implementation.
+Strict mode. Show me every plan and wait for my checkpoint before implementation.
 ```
 
-Compass must wait for explicit approval before editing.
+Compass must wait for the requested checkpoint before editing.
 
 ## 15. Success Criteria
 
@@ -764,9 +757,10 @@ Compass is successful when:
 - The planner can ask questions and revise plans before implementation.
 - The user can tell which Compass role is currently speaking.
 - The user sees each subagent handoff, return, and parallel execution group.
-- Implementation does not begin before alignment unless explicitly authorized.
+- Implementation begins after plan presentation unless the user requested a
+  checkpoint.
 - Context-heavy work is delegated and summarized.
-- Implementation follows the approved plan.
+- Implementation follows the assigned plan.
 - Verification reports what was checked and what remains risky.
 - Normal Claude Code sessions remain unaffected when Compass is not active.
 
@@ -787,7 +781,7 @@ Build in this order:
 6. Create `compass/agents/compass-plan-auditor.md`.
    - Verify: auditor reviews plans without editing files.
 7. Create `compass/agents/compass-implementer.md`.
-   - Verify: implementer follows an approved plan only.
+   - Verify: implementer follows the assigned plan.
 8. Create `compass/agents/compass-test-runner.md`.
    - Verify: focused tests are summarized.
 9. Create `compass/agents/compass-log-digester.md`.

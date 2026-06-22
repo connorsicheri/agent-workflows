@@ -12,7 +12,9 @@ Use this workflow for code-changing tasks inside a Compass session.
    asks for immediate repository inspection.
 4. Gather context with `compass-context-scout` only when intake produces enough
    search guidance, the user asks for deep search, or repository evidence is
-   clearly required before planning.
+   clearly required before planning. When the need splits into independent
+   questions, fan out one scout per question in parallel (see Parallel
+   Execution) and join their results.
 5. Ask `compass-planner` to produce or refine a plan.
 6. If the planner returns a Planner Evidence Request, add a TODO item, build a
    targeted Context Packet, retrieve the requested evidence, and return that
@@ -23,17 +25,34 @@ Use this workflow for code-changing tasks inside a Compass session.
    Packet and use `compass-plan-auditor`.
 9. Route audit findings before implementation.
 10. Present the plan and TODO Board to the user.
-11. Wait for approval unless the user explicitly authorized proceeding without
-   another approval gate.
-12. Split approved TODO items into sequential and parallel execution groups.
-13. Build a focused Context Packet for each subagent.
-14. Use `compass-implementer` to execute the approved plan.
+11. Proceed to implementation unless the user asked for a manual checkpoint.
+12. Split planned TODO items into execution groups, defaulting to parallel (see
+    Parallel Execution).
+13. Build a focused Context Packet for each subagent using the
+    `context-packets` skill.
+14. Use `compass-implementer` to execute the plan, launching write-safe groups
+    in parallel.
 15. Use `compass-test-runner` or `compass-log-digester` for validation output.
 16. Apply the verification gate before final response.
 
 The orchestrator owns the master TODO Board. Subagents receive assigned TODO
 items and report status back; they do not mutate or reprioritize the master
 board.
+
+## Parallel Execution
+
+Default to parallel. This applies to both context gathering (multiple scouts for
+independent questions) and implementation (one implementer per write-safe
+execution group). Sequential is the deliberate exception, used only when one
+unit's output feeds another, units touch the same files, they change a shared
+public API, schema, or contract, or a sequential decision is required.
+
+Concurrency requires the right launch shape: agents only run at the same time
+when launched in a single message with one Agent tool call per agent. Agents
+launched in separate messages run one after another regardless of how the
+handoff is announced. Every announced parallel group must therefore be launched
+as one message with one Agent call per member, and joined before dependent work
+begins.
 
 ## Intake Before Search
 
@@ -47,58 +66,12 @@ inspection, has already provided enough search guidance, says they do not know
 where to look, or the task is risky enough that evidence is required before a
 plan.
 
-Context Packet format:
+Context Packet format is defined in the `context-packets` skill. Use its base
+packet plus the relevant agent-specific profile.
 
-```md
-## Context Packet
+Planner Evidence Request format is defined in the `context-packets` skill.
 
-- Parent task:
-- Assigned TODO item:
-- Agent:
-- Model tier:
-- Goal:
-- In scope:
-- Out of scope:
-- Relevant files/evidence:
-- Constraints:
-- Stop conditions:
-- Expected return format:
-```
-
-Planner Evidence Request format:
-
-```md
-## Planner Evidence Request
-
-- Question to answer:
-- Why it matters:
-- Suggested agent:
-- Suggested scout target:
-- Files, symbols, or search terms:
-- Constraints:
-- Stop condition:
-- Expected evidence:
-```
-
-Audit Packet format:
-
-```md
-## Audit Packet
-
-- Parent task:
-- User request:
-- Current plan:
-- TODO Board:
-- Context Packets:
-- Evidence summaries:
-- Planner assumptions:
-- Files likely involved:
-- Execution groups:
-- Risk checks:
-- Stop conditions:
-- Known constraints:
-- Expected audit output:
-```
+Audit Packet format is defined in the `context-packets` skill.
 
 Classify as:
 

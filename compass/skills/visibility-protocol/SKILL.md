@@ -60,9 +60,9 @@ What should we work on?
 
 ## Compass Dashboard
 
-Compass maintains a live HTML dashboard at `.compass/dashboard-<session-id>.html`.
+Compass maintains a live HTML dashboard at `.compass/dashboard.html`.
 It opens automatically in the browser at session start and auto-refreshes every 2 seconds.
-Each Compass session gets its own file (keyed by PPID), so concurrent sessions do not conflict.
+Each Compass session gets its own file (keyed by a persisted session ID), so concurrent sessions do not conflict.
 
 Update the dashboard by running the update script whenever Compass state changes:
 
@@ -79,10 +79,11 @@ Update the dashboard by running the update script whenever Compass state changes
 Startup command (run at session start before the first user-facing message):
 
 ```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
+bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
 ```
 
-The script outputs the dashboard file path. On first run it opens the browser automatically.
+The script outputs the dashboard file path. At session start, pass `--init` so
+it opens the browser automatically.
 Do not link to the dashboard file in chat — it opens itself.
 
 ## TODO Board
@@ -99,7 +100,7 @@ Compass TODO Board
 - [active] Planner drafts scoped implementation plan
 - [queued] Implement validation helper
 - [queued] Add validation tests
-- [blocked] Await user approval
+- [blocked] Resolve plan conflict
 ```
 
 Show the expanded board only when the plan is created, when parallel work
@@ -117,20 +118,20 @@ Compass phase: implementation
 Compass phase: verification
 ```
 
-## Approval Handoff
+## Implementation Handoff
 
-When the user approves a plan, route visibly before doing any implementation:
+After presenting a plan, route visibly before doing any implementation:
 
 ```text
-Compass: compass-orchestrator · implementation · launching approved implementation · active: compass-implementer · todo: <done>/<total>
+Compass: compass-orchestrator · implementation · launching implementation · active: compass-implementer · todo: <done>/<total>
 Compass handoff: compass-implementer
-Purpose: execute the approved plan item: <item>.
+Purpose: execute the planned item: <item>.
 Mode: sequential
 ```
 
-If the approved work is split into independent execution groups, use the
-parallel handoff format instead. Do not replace this handoff with generic
-phrases like "I'll start implementing" or "I'll set up the todo list."
+If the planned work is split into independent execution groups, use the parallel
+handoff format instead. Do not replace this handoff with generic phrases like
+"I'll start implementing" or "I'll set up the todo list."
 
 ## Sequential Handoff
 
@@ -143,23 +144,8 @@ Purpose: <one sentence>
 Mode: sequential
 ```
 
-Include or prepare a Context Packet for the subagent:
-
-```md
-## Context Packet
-
-- Parent task:
-- Assigned TODO item:
-- Agent:
-- Model tier:
-- Goal:
-- In scope:
-- Out of scope:
-- Relevant files/evidence:
-- Constraints:
-- Stop conditions:
-- Expected return format:
-```
+Include or prepare a Context Packet for the subagent using the base packet and
+agent-specific profile from the `context-packets` skill.
 
 After it returns:
 
@@ -171,6 +157,9 @@ Result: <one sentence>
 
 ## Parallel Handoff
 
+Use this for any parallel group, whether the members are implementers working
+write-safe execution groups or context scouts answering independent questions.
+
 Before launching parallel work:
 
 ```text
@@ -181,6 +170,11 @@ Agents:
 - <agent>: <assignment>
 Join condition: <what must be true before continuing>
 ```
+
+The launch itself must be a single message containing one Agent tool call per
+listed agent. Agents launched in separate messages run sequentially no matter
+what this banner says, so announcing a parallel group and then launching its
+members one per message is a bug, not parallel work.
 
 After all agents return:
 

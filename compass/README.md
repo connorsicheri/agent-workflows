@@ -60,9 +60,8 @@ After launching with the command above, confirm:
 
 - `@compass-orchestrator` appears in the startup header and is the session agent.
 - The Compass agents appear in `/agents`.
-- A task that changes code produces a plan before implementation.
-- The implementer does not edit before plan approval unless explicitly told to
-  proceed without another approval gate.
+- A task that changes code produces a plan before implementation, then proceeds
+  without an extra Compass checkpoint unless the user requests one.
 
 ## Design
 
@@ -76,9 +75,12 @@ The role boundaries are:
 - `compass-context-scout`: read-only codebase discovery.
 - `compass-planner`: read-only planning and user-alignment support.
 - `compass-plan-auditor`: independent read-only plan audit.
-- `compass-implementer`: scoped implementation from an approved plan.
+- `compass-implementer`: scoped implementation from an assigned plan.
 - `compass-log-digester`: noisy log and stack trace compression.
 - `compass-test-runner`: focused validation and test summaries.
+
+The `context-packets` skill defines how `compass-orchestrator` injects focused
+context into each subagent type.
 
 Compass should not launch context gathering reflexively. The orchestrator starts
 with a short intake chat when the user may have search hints or wants to talk
@@ -86,11 +88,11 @@ through the task first. It launches `compass-context-scout` after the user asks
 for investigation, provides enough search guidance for a targeted packet, says
 they do not know where to look, or the planner/auditor needs evidence.
 
-When a user approves a plan, Compass should not drift into generic "I'll start
-implementing" narration. Approval opens the implementation gate: the
-orchestrator announces a visible handoff and launches `compass-implementer` with
-the approved tasks and focused Context Packet. For ordinary tool-using tasks
-that are not implementation plans, it launches `compass-doer`.
+After presenting a plan, Compass should not drift into generic "I'll start
+implementing" narration or ask for another checkpoint by default. The orchestrator
+announces a visible handoff and launches `compass-implementer` with the planned
+tasks and focused Context Packet. For ordinary tool-using tasks that are not
+implementation plans, it launches `compass-doer`.
 
 ## Visibility
 
@@ -112,33 +114,27 @@ At session start, Compass also announces:
 Compass active. You are speaking with compass-orchestrator.
 ```
 
-Claude Code chat may not render Mermaid diagrams. VS Code Markdown Preview does
-render Mermaid fenced code blocks, so Compass treats Mermaid as a Markdown
-preview artifact. Compass should not paste Mermaid, graph code, or text maps
-into chat.
-
-Compass automatically maintains the rendered map artifact:
+Compass automatically maintains the live dashboard artifact:
 
 ```text
-.compass/compass-map.md
+.compass/dashboard.html
 ```
 
 The orchestrator should update it whenever Compass state changes: session
 start, phase changes, agent starts/finishes, TODO state changes, plan changes,
 evidence requests, audit requests, parallel work, blocked states, and final
-summary. Open it with VS Code Markdown Preview for the rendered diagram. In
-chat, Compass may link it quietly as `Map: .compass/compass-map.md` when useful;
-the graph source should stay only in the Markdown artifact.
+summary. The dashboard opens automatically at session start and refreshes every
+2 seconds.
 
-Compass updates the map through one deterministic Bash path instead of choosing
-between file tools at runtime:
+Compass updates the dashboard through one deterministic Bash path instead of
+choosing between file tools at runtime:
 
 ```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
+bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
 ```
 
-The updater creates `.compass`, touches and reads `compass-map.md`, writes a
-temporary file, then moves it into place.
+The updater creates `.compass`, writes a temporary dashboard file, then moves it
+into place.
 
 ## TODO Ownership
 
@@ -155,52 +151,41 @@ Compass TODO Board
 - [active] Planner drafts scoped implementation plan
 - [queued] Implement validation helper
 - [queued] Add validation tests
-- [blocked] Await user approval
+- [blocked] Resolve plan conflict
 ```
 
-Before launching a subagent, the orchestrator prepares a Context Packet:
+Before launching a subagent, the orchestrator prepares a Context Packet from
+`compass/skills/context-packets/SKILL.md`: the base packet plus the relevant
+subagent profile.
 
-```md
-## Context Packet
+Every Context Packet goes through the cheap Packet Quality Checklist in that
+skill. Only broad, ambiguous, high-risk, or implementation-driving packets
+escalate to Packet Review, where `compass-plan-auditor` checks the packet
+against the user request, TODO Board, evidence summaries, assumptions, and
+intended receiving agent before the handoff.
 
-- Parent task:
-- Assigned TODO item:
-- Agent:
-- Model tier:
-- Goal:
-- In scope:
-- Out of scope:
-- Relevant files/evidence:
-- Constraints:
-- Stop conditions:
-- Expected return format:
-```
-
-When TODO items are independent, the orchestrator can launch multiple subagents
-in parallel and join their results before continuing.
+Compass defaults to parallel. When units of work have no shared write targets
+and no data dependency, the orchestrator runs them at the same time and joins
+their results before continuing — one implementer per write-safe execution
+group, and one context scout per independent question. Work stays sequential
+only when one unit's output feeds another, the units touch the same files, or a
+sequential decision is required. Concurrency comes from launching the group in a
+single message with one agent call per member; a group launched one agent per
+message would run sequentially instead.
 
 ## Planner-Requested Evidence
 
 The planner is not stuck with the first context scan. If it needs more evidence,
-it returns a Planner Evidence Request to the orchestrator:
-
-```md
-## Planner Evidence Request
-
-- Question to answer:
-- Why it matters:
-- Suggested agent: compass-context-scout
-- Suggested scout target:
-- Files, symbols, or search terms:
-- Constraints:
-- Stop condition:
-- Expected evidence:
-```
+it returns a Planner Evidence Request to the orchestrator using the format in
+`context-packets`.
 
 The orchestrator then adds a TODO item, creates a targeted Context Packet,
 launches the requested agent, and returns the compressed evidence to the
-planner. The planner/evidence loop repeats until the planner can produce a good
-plan, asks the user a question, or hits a stop condition.
+planner. When the planner returns several independent evidence requests, or the
+context need splits into separate questions, the orchestrator fans out one scout
+per question in parallel and joins their results before replying to the planner.
+The planner/evidence loop repeats until the planner can produce a good plan, asks
+the user a question, or hits a stop condition.
 
 ## Plan Audits
 

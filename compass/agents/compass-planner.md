@@ -50,6 +50,11 @@ instead of a plan:
 - Expected evidence:
 ```
 
+If several independent questions must be answered before you can plan, return
+multiple Planner Evidence Requests at once, one block each, so the orchestrator
+can gather them with parallel scouts. Only order requests sequentially when one
+answer determines what the next question should be.
+
 Use an evidence request when:
 
 - The relevant code path is still unclear.
@@ -68,7 +73,7 @@ Return plans in this format:
 - What the user appears to care about:
 - Non-goals:
 - Assumptions:
-- Questions or approval points:
+- Questions or decisions:
 
 ## Recommendation
 
@@ -88,14 +93,25 @@ Return plans in this format:
 
 ## Execution Groups
 
-List groups that can run independently. If all steps are interdependent, use a
-single sequential group.
+Split the work into the largest set of groups the orchestrator can run in
+parallel. Two steps belong in different groups when they touch different files
+and neither depends on the other's output. Put steps in the same group, or chain
+groups sequentially, only when they share write targets, depend on each other,
+or change a shared public API, schema, or contract. If every step is
+interdependent, use a single sequential group.
+
+For each group, list its files and state whether it is parallel-safe with the
+other groups or must run after a specific group.
 
 Group 1:
 - Step:
+- Files:
+- Parallel-safe with: <groups, or "none — must run after Group N">
 
 Group 2:
 - Step:
+- Files:
+- Parallel-safe with: <groups, or "none — must run after Group N">
 
 ## Risk Check
 

@@ -32,7 +32,8 @@ Important files:
   `compass-orchestrator`.
 - `compass/commands/compass.md`: global `/compass` launcher behavior.
 - `compass/agents/`: Compass orchestrator and subagent definitions.
-- `compass/skills/`: internal workflows used by the orchestrator.
+- `compass/skills/`: internal workflows used by the orchestrator, including
+  `context-packets` for subagent packet construction.
 - `claude-orchestration-workflow/Claude Code Routed Agent System Plan.md`:
   detailed design notes and implementation plan.
 
@@ -123,33 +124,29 @@ Compass: compass-orchestrator · planning · relaying planner update · active: 
 
 The status line should stay plain and low-emphasis; it should never use HTML
 tags, Markdown emphasis, a pipe-delimited banner, heading, table, or multi-line
-panel. Claude Code chat may not render Mermaid diagrams. VS Code Markdown
-Preview does render Mermaid fenced code blocks, so Compass treats Mermaid as a
-Markdown preview artifact. Compass should not paste Mermaid, graph code, or text
-maps into chat.
+panel.
 
-Compass automatically maintains the rendered map artifact:
+Compass automatically maintains the live dashboard artifact:
 
 ```text
-.compass/compass-map.md
+.compass/dashboard.html
 ```
 
 The orchestrator should update it whenever Compass state changes: session
 start, phase changes, agent starts/finishes, TODO state changes, plan changes,
 evidence requests, audit requests, parallel work, blocked states, and final
-summary. Open it with VS Code Markdown Preview for the rendered diagram. In
-chat, Compass may link it quietly as `Map: .compass/compass-map.md` when useful;
-the graph source should stay only in the Markdown artifact.
+summary. The dashboard opens automatically at session start and refreshes every
+2 seconds.
 
-Compass updates the map through one deterministic Bash path instead of choosing
-between file tools at runtime:
+Compass updates the dashboard through one deterministic Bash path instead of
+choosing between file tools at runtime:
 
 ```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input"
+bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
 ```
 
-The updater creates `.compass`, touches and reads `compass-map.md`, writes a
-temporary file, then moves it into place.
+The updater creates `.compass`, writes a temporary dashboard file, then moves it
+into place.
 
 `compass-orchestrator` owns the master Compass TODO Board. Subagents receive
 assigned TODO items and focused Context Packets, then report status back.
@@ -162,41 +159,15 @@ Compass TODO Board
 - [active] Planner drafts scoped implementation plan
 - [queued] Implement validation helper
 - [queued] Add validation tests
-- [blocked] Await user approval
+- [blocked] Resolve plan conflict
 ```
 
-Context Packet example:
+Context Packet shapes live in `compass/skills/context-packets/SKILL.md`. The
+orchestrator uses the base packet plus the relevant subagent profile before
+each handoff.
 
-```md
-## Context Packet
-
-- Parent task:
-- Assigned TODO item:
-- Agent:
-- Model tier:
-- Goal:
-- In scope:
-- Out of scope:
-- Relevant files/evidence:
-- Constraints:
-- Stop conditions:
-- Expected return format:
-```
-
-The planner can request more context before producing a plan:
-
-```md
-## Planner Evidence Request
-
-- Question to answer:
-- Why it matters:
-- Suggested agent: compass-context-scout
-- Suggested scout target:
-- Files, symbols, or search terms:
-- Constraints:
-- Stop condition:
-- Expected evidence:
-```
+The planner can request more context before producing a plan. The Planner
+Evidence Request format also lives in `context-packets`.
 
 The orchestrator owns that loop: it adds a TODO item, sends a targeted Context
 Packet to the right agent, and returns compressed evidence to the planner.

@@ -19,36 +19,20 @@ The orchestrator owns routing and TODO state.
 ## Sequence
 
 1. Add a TODO item for plan audit.
-2. Build an Audit Packet for `compass-plan-auditor`.
+2. Build an Audit Packet for `compass-plan-auditor` using the
+   `context-packets` skill.
 3. Include the current plan, stored context, evidence summaries, assumptions,
    risks, execution groups, and stop conditions.
 4. Launch `compass-plan-auditor`.
 5. Route the audit result:
-   - `pass`: proceed to user alignment or implementation approval.
-   - `pass-with-notes`: show notes and ask whether to proceed.
+   - `pass`: proceed to user alignment or implementation.
+   - `pass-with-notes`: show notes and proceed unless the notes require a
+     plan revision.
    - `needs-revision`: return to `compass-planner`.
    - `needs-more-context`: launch the requested scout/log/test agent.
-   - `block`: stop and ask the user how to proceed.
+   - `block`: stop with the blocking reason and recommended next step.
 
-## Audit Packet
-
-```md
-## Audit Packet
-
-- Parent task:
-- User request:
-- Current plan:
-- TODO Board:
-- Context Packets:
-- Evidence summaries:
-- Planner assumptions:
-- Files likely involved:
-- Execution groups:
-- Risk checks:
-- Stop conditions:
-- Known constraints:
-- Expected audit output:
-```
+Audit Packet format is defined in the `context-packets` skill.
 
 If the auditor requests more evidence, the orchestrator treats it like a planner
 evidence request: add a TODO item, create a targeted Context Packet, retrieve

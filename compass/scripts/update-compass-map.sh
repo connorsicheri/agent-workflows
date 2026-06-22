@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Parse --init flag from any position; rebuild positional args without it.
+is_init=false
+filtered_args=()
+for arg in "$@"; do
+  if [ "$arg" = "--init" ]; then
+    is_init=true
+  else
+    filtered_args+=("$arg")
+  fi
+done
+set -- "${filtered_args[@]+"${filtered_args[@]}"}"
+
 project_root="${1:-$PWD}"
 phase="${2:-orientation}"
 active_agents="${3:-none}"
@@ -8,27 +20,34 @@ todo_state="${4:-0/0}"
 last_completed="${5:-session start}"
 next_step="${6:-awaiting user input}"
 
-# Each Claude Code session has a stable PPID (the Claude process PID).
-# Use it as the session ID so concurrent sessions write separate files.
-session_id="$PPID"
 dashboard_dir="$project_root/.compass"
-dashboard_file="$dashboard_dir/dashboard-${session_id}.html"
+session_file="$dashboard_dir/.session"
 
 mkdir -p "$dashboard_dir"
 
-# Remove dashboards whose parent process is no longer running.
+# Session ID: persisted to .session so it is stable across bash invocations.
+# Generate a new one only when --init is explicitly passed (session start).
+is_new_session=false
+if [ "$is_init" = true ]; then
+  session_id="$(date +%s)"
+  printf '%s\n' "$session_id" > "$session_file"
+  is_new_session=true
+elif [ -f "$session_file" ]; then
+  session_id="$(cat "$session_file")"
+else
+  # No session file and no --init: treat as new session (graceful fallback).
+  session_id="$(date +%s)"
+  printf '%s\n' "$session_id" > "$session_file"
+  is_new_session=true
+fi
+
+dashboard_file="$dashboard_dir/dashboard.html"
+
+# Remove old session-specific dashboards from previous versions of this script.
 for stale in "$dashboard_dir"/dashboard-*.html; do
   [ -f "$stale" ] || continue
-  stale_pid="${stale##*dashboard-}"
-  stale_pid="${stale_pid%.html}"
-  if [[ "$stale_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$stale_pid" 2>/dev/null; then
-    rm -f "$stale"
-  fi
+  rm -f "$stale"
 done
-
-# Track whether this is a new session so we can open the browser once.
-is_new_session=false
-[ ! -f "$dashboard_file" ] && is_new_session=true
 
 # Git branch
 branch="unknown"
@@ -38,6 +57,22 @@ if git -C "$project_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 updated="$(date '+%H:%M:%S')"
+
+html_escape() {
+  printf '%s' "$1" \
+    | sed -e 's/&/\&amp;/g' \
+          -e 's/</\&lt;/g' \
+          -e 's/>/\&gt;/g' \
+          -e 's/"/\&quot;/g'
+}
+
+phase_html="$(html_escape "$phase")"
+todo_state_html="$(html_escape "$todo_state")"
+last_completed_html="$(html_escape "$last_completed")"
+next_step_html="$(html_escape "$next_step")"
+branch_html="$(html_escape "$branch")"
+session_id_html="$(html_escape "$session_id")"
+updated_html="$(html_escape "$updated")"
 
 # Phase → CSS class
 case "$phase" in
@@ -80,7 +115,7 @@ cat > "$tmp_file" << HTMLEOF
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="refresh" content="2">
-  <title>Compass · ${phase}</title>
+  <title>Compass · ${phase_html}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -194,8 +229,8 @@ cat > "$tmp_file" << HTMLEOF
 <body>
   <div class="header">
     <span class="logo">Compass</span>
-    <span class="phase-badge phase-${phase_class}">${phase}</span>
-    <span class="todo-counter">${todo_state}</span>
+    <span class="phase-badge phase-${phase_class}">${phase_html}</span>
+    <span class="todo-counter">${todo_state_html}</span>
   </div>
 
   <div class="section-label">Agents</div>
@@ -203,12 +238,12 @@ cat > "$tmp_file" << HTMLEOF
 
   <div class="section-label">Status</div>
   <div class="meta">
-    <div class="meta-row"><span class="meta-label">Last</span><span class="meta-value">${last_completed}</span></div>
-    <div class="meta-row"><span class="meta-label">Next</span><span class="meta-value">${next_step}</span></div>
-    <div class="meta-row"><span class="meta-label">Branch</span><span class="meta-value">${branch}</span></div>
+    <div class="meta-row"><span class="meta-label">Last</span><span class="meta-value">${last_completed_html}</span></div>
+    <div class="meta-row"><span class="meta-label">Next</span><span class="meta-value">${next_step_html}</span></div>
+    <div class="meta-row"><span class="meta-label">Branch</span><span class="meta-value">${branch_html}</span></div>
   </div>
 
-  <div class="footer">↻ refreshes every 2s &nbsp;·&nbsp; session ${session_id} &nbsp;·&nbsp; ${updated}</div>
+  <div class="footer">↻ refreshes every 2s &nbsp;·&nbsp; session ${session_id_html} &nbsp;·&nbsp; ${updated_html}</div>
 </body>
 </html>
 HTMLEOF
@@ -217,7 +252,9 @@ mv "$tmp_file" "$dashboard_file"
 
 # Open the browser once per session.
 if [ "$is_new_session" = true ] && command -v open >/dev/null 2>&1; then
-  open "$dashboard_file" || true
+  if ! open "$dashboard_file" 2>/dev/null; then
+    printf 'warning: unable to open dashboard: %s\n' "$dashboard_file" >&2
+  fi
 fi
 
 printf '%s\n' "$dashboard_file"
