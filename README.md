@@ -10,8 +10,8 @@ Compass is designed to be started once for a session with:
 ```
 
 After that, the user speaks to `compass-orchestrator`, which coordinates
-planning, context gathering, implementation, test execution, log digestion, and
-verification through focused subagents.
+planning, context gathering, implementation, code review, test execution, log
+digestion, and verification through focused subagents.
 
 Compass starts with conversation before deep search when that would help. The
 orchestrator asks for useful search hints first, then launches
@@ -33,7 +33,8 @@ Important files:
 - `compass/commands/compass.md`: global `/compass` launcher behavior.
 - `compass/agents/`: Compass orchestrator and subagent definitions.
 - `compass/skills/`: internal workflows used by the orchestrator, including
-  `context-packets` for subagent packet construction.
+  `context-packets` for subagent packet construction and `change-walkthrough`
+  for local HTML reviewer artifacts.
 - `claude-orchestration-workflow/Claude Code Routed Agent System Plan.md`:
   detailed design notes and implementation plan.
 
@@ -103,13 +104,20 @@ Compass does not show model names in user-facing banners because the runtime
 model may be selected by Claude Code or the VS Code extension. The plugin still
 declares preferred model tiers internally:
 
+- `compass-orchestrator`: Opus medium.
 - `compass-planner`: Opus.
 - `compass-plan-auditor`: Opus.
-- `compass-implementer`: Sonnet.
+- `compass-code-reviewer`: Opus.
+- `compass-doer`: Sonnet 1M.
+- `compass-implementer`: Sonnet 1M.
 - `compass-merge-agent`: Opus.
 - `compass-context-scout`: Haiku.
 - `compass-log-digester`: Haiku.
 - `compass-test-runner`: Haiku.
+
+The copied `visual-plan` and `visual-recap` skills are parked as deprecated
+source material under `compass/skills/`; Compass does not route to them by
+default.
 
 ## Visibility Protocol
 

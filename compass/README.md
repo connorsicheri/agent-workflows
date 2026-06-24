@@ -5,8 +5,8 @@ engineering session.
 
 When Compass is active, the main chat runs as `compass-orchestrator`. The
 orchestrator coordinates focused agents for ordinary task execution, context
-gathering, planning, implementation, log digestion, test execution, and final
-verification.
+gathering, planning, implementation, code review, log digestion, test execution,
+and final verification.
 
 ## Intended Experience
 
@@ -70,12 +70,16 @@ for chats where the plugin is loaded or enabled.
 
 The role boundaries are:
 
-- `compass-orchestrator`: main session agent and user-facing router.
-- `compass-doer`: general execution for ordinary delegated tasks.
+- `compass-orchestrator`: Opus medium main session agent and user-facing
+  router.
+- `compass-doer`: Sonnet 1M general execution for ordinary delegated tasks.
 - `compass-context-scout`: read-only codebase discovery.
 - `compass-planner`: read-only planning and user-alignment support.
 - `compass-plan-auditor`: independent read-only plan audit.
-- `compass-implementer`: scoped implementation from an assigned plan.
+- `compass-code-reviewer`: independent read-only review of implemented code,
+  diffs, branches, worktrees, or PR changes.
+- `compass-implementer`: Sonnet 1M scoped implementation from an assigned
+  plan.
 - `compass-merge-agent`: Opus integration of accepted worktree changes onto the
   target branch.
 - `compass-log-digester`: noisy log and stack trace compression.
@@ -90,11 +94,26 @@ through the task first. It launches `compass-context-scout` after the user asks
 for investigation, provides enough search guidance for a targeted packet, says
 they do not know where to look, or the planner/auditor needs evidence.
 
+For simple and nuanced questions, explanations, tradeoff discussion,
+architecture or product reasoning, debugging theory, or "help me think this
+through" requests, the Opus orchestrator answers directly. If repository
+evidence is needed, it routes a targeted `compass-context-scout` packet first.
+
 After presenting a plan, Compass should not drift into generic "I'll start
 implementing" narration or ask for another checkpoint by default. The orchestrator
 announces a visible handoff and launches `compass-implementer` with the planned
 tasks and focused Context Packet. For ordinary tool-using tasks that are not
 implementation plans, it launches `compass-doer`.
+
+For PR, branch, worktree, local diff, or file-list walkthrough requests,
+Compass routes to `compass-doer` with the `change-walkthrough` skill. The
+default output is a local `local-notes/<slug>.html` reviewer artifact. PR body
+updates are separate explicit tasks and should be split into a separate doer
+when requested alongside the walkthrough.
+
+Compass does not currently route to `visual-plan` or `visual-recap`. Those
+copied skills are parked as deprecated source material until Compass has a
+repo-owned viewer or a clearer local artifact workflow.
 
 When an implementer uses an isolated worktree, Compass routes the result through
 `compass-merge-agent` before verification. The orchestrator coordinates the

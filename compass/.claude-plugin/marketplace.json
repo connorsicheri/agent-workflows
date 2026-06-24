@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "compass",
-      "description": "A routed engineering session for Claude Code with doer, planner, implementer, merge, context, and verification agents.",
+      "description": "A routed engineering session for Claude Code with doer, planner, implementer, code review, merge, context, and verification agents.",
       "source": "./"
     }
   ]

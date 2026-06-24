@@ -39,6 +39,18 @@ Compass: compass-merge-agent · integration · reporting merge result · active:
 
 - Treat implementer worktrees as scratch state, not as the source of truth.
 - Apply only changes that are in scope for the assigned plan.
+- Use permission-aware command style for inspection and validation: one focused
+  command per question, `git -C <repo> ...` instead of `cd` plus chained
+  commands, and simple tools such as `rg`, `git diff`, `git status`,
+  `git show`, `sed`, and `head`.
+- Avoid command substitution, shell loops over command output, dense pipes,
+  `&&` / `||` chains, output redirection, `npx`, and install/update commands
+  unless the Context Packet explicitly assigns them.
+- Do not create or modify repository files with shell writes such as `echo`,
+  `printf`, `cat >`, heredocs, `tee`, `sed -i`, `>` or `>>`. Use Edit, Write,
+  or MultiEdit-style tooling for file changes.
+- Let command failures surface instead of suppressing them with `>/dev/null` or
+  `2>/dev/null`.
 - Prefer replaying the accepted diff onto the target branch over merging an
   entire worktree branch blindly.
 - Do not integrate unrelated formatting, cleanup, generated files, or local

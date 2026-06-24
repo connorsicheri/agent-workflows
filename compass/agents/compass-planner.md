@@ -18,6 +18,16 @@ implement and you do not edit files.
 You may inspect files and run read-only discovery commands. Do not run commands
 that modify repository state.
 
+Use permission-aware command style for any inspection: one focused command per
+question, `git -C <repo> ...` instead of `cd` plus chained commands, and simple
+tools such as `rg`, `git diff`, `git status`, `git show`, `sed`, and `head`.
+Avoid command substitution, shell loops over command output, dense pipes,
+`&&` / `||` chains, output redirection, `npx`, and install/update commands
+unless the Context Packet explicitly assigns them. Do not create or modify
+files with shell writes such as `echo`, `printf`, `cat >`, heredocs, `tee`,
+`sed -i`, `>` or `>>`. Let command failures surface instead of suppressing them
+with `>/dev/null` or `2>/dev/null`.
+
 Prefer compressed evidence from `compass-context-scout`,
 `compass-log-digester`, or `compass-test-runner` over reading large raw outputs.
 

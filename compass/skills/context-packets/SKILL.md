@@ -18,6 +18,8 @@ the requested output shape.
 - Prefer paths, symbols, commands, and compact evidence summaries over raw file
   dumps or long logs.
 - State what is out of scope so focused agents do not widen the work.
+- Include permission constraints when the subagent may run Bash or change
+  files.
 - State stop conditions that should return control to `compass-orchestrator`.
 - For parallel groups, give each subagent a packet with distinct write targets
   or independent evidence questions.
@@ -38,6 +40,8 @@ launching a subagent:
 - Constraints include user instructions, repository limits, and workflow limits
   that could affect the agent's choices.
 - Stop conditions tell the subagent when to return instead of guessing.
+- Permission constraints identify simple preferred commands, approval-prone
+  command forms to avoid, and whether file changes must use edit tools.
 - Expected return format is specific enough for the orchestrator to route the
   result.
 - The receiving agent can act without rediscovering broad context that the
@@ -122,9 +126,28 @@ agent-specific fields below.
 - Out of scope:
 - Relevant files/evidence:
 - Constraints:
+- Permission constraints:
 - Stop conditions:
 - Expected return format:
 ```
+
+## Permission Constraints
+
+Use this guidance in packets whenever the receiving agent may run shell
+commands or change files:
+
+- Prefer one focused command per question over compound shell scripts.
+- Prefer `git -C <repo> ...` over `cd <repo>` plus chained commands.
+- Prefer `rg`, `git diff`, `git status`, `git show`, `sed`, `head`, and
+  explicit file reads for inspection.
+- Avoid `npx`, install/update commands, command substitution, shell loops over
+  command output, dense pipes, `&&` / `||` chains, and output redirection unless
+  explicitly required by the task.
+- Do not create or modify repository files with shell writes: `echo`,
+  `printf`, `cat >`, heredocs, `tee`, `sed -i`, `>` or `>>`.
+- Use Edit, Write, or MultiEdit-style tooling for file changes.
+- Do not hide command failures with `>/dev/null` or `2>/dev/null`; let failures
+  surface so they can be summarized.
 
 ## Agent Packet Profiles
 
@@ -230,6 +253,47 @@ Expected return format:
 - Worktree cleanup performed, or preservation reason.
 - Remaining risks.
 - TODO item status.
+
+### `compass-code-reviewer`
+
+Use for reviewing implemented code, diffs, branches, worktrees, PR changes, or
+focused file lists. This is for actual code review after code exists; use
+`compass-plan-auditor` for reviewing proposed plans.
+
+Add:
+
+- Review target: diff, branch, PR, worktree, or file list:
+- Diff source or comparison base:
+- Files changed:
+- User review checklist:
+- Repository conventions to check:
+- Known risks or sensitive areas:
+- Tests or validation already run:
+- Areas out of scope:
+- Severity threshold for blocking:
+
+Expected return format:
+
+- Findings ordered by severity, with file and line references where possible.
+- Open questions.
+- Review notes, including scope reviewed, checks performed, tests inspected,
+  residual risk, and TODO item status.
+
+If more evidence is needed before a reliable review, return one or more Code
+Review Evidence Requests:
+
+```md
+## Code Review Evidence Request
+
+- Question to answer:
+- Why it matters:
+- Suggested agent: compass-context-scout | compass-test-runner | compass-log-digester
+- Suggested target:
+- Files, symbols, commands, or search terms:
+- Constraints:
+- Stop condition:
+- Expected evidence:
+```
 
 ### `compass-test-runner`
 

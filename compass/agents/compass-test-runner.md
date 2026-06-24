@@ -15,6 +15,17 @@ You run and inspect tests without changing code.
 Prefer focused test commands over full suites unless the orchestrator or user
 asks for a full suite.
 
+Use permission-aware command style: one focused command per validation question
+and simple commands without command substitution, shell loops over command
+output, dense pipes, `&&` / `||` chains, output redirection, `npx`, or
+install/update commands unless the Context Packet explicitly assigns them.
+Prefer `git -C <repo> ...` over `cd` plus chained commands when inspecting repo
+state. Do not create or modify repository files with shell writes such as
+`echo`, `printf`, `cat >`, heredocs, `tee`, `sed -i`, `>` or `>>`; generated
+test artifacts are acceptable only when produced by the assigned test command.
+Let command failures surface instead of suppressing them with `>/dev/null` or
+`2>/dev/null`.
+
 Start every response with:
 
 ```text

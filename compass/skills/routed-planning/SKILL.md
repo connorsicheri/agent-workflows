@@ -67,10 +67,16 @@ merge, or clean up worktree changes.
 ## Parallel Execution
 
 Default to parallel. This applies to both context gathering (multiple scouts for
-independent questions) and implementation (one implementer per write-safe
-execution group). Sequential is the deliberate exception, used only when one
-unit's output feeds another, units touch the same files, they change a shared
-public API, schema, or contract, or a sequential decision is required.
+independent questions), ordinary delegated work (one doer per independent write
+target or external side effect), and implementation (one implementer per
+write-safe execution group). Sequential is the deliberate exception, used only
+when one unit's output feeds another, units touch the same files, they change a
+shared public API, schema, or contract, or a sequential decision is required.
+
+Do not bundle independent artifact creation and remote updates into a single
+doer. A local artifact such as a walkthrough file and a remote change such as a
+PR description update should be separate parallel `compass-doer` launches when
+they share only the same source spec.
 
 Concurrency requires the right launch shape: agents only run at the same time
 when launched in a single message with one Agent tool call per agent. Agents

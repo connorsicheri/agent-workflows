@@ -77,8 +77,8 @@ updated_html="$(html_escape "$updated")"
 # Phase → CSS class
 case "$phase" in
   context)                        phase_class="context" ;;
-  planning|plan-audit)            phase_class="planning" ;;
-  implementation|integration)     phase_class="implementation" ;;
+  planning|plan-audit) phase_class="planning" ;;
+  implementation|integration|code-review) phase_class="implementation" ;;
   verification)                   phase_class="verification" ;;
   *)                              phase_class="idle" ;;
 esac
@@ -89,6 +89,7 @@ declare -a AGENTS=(
   "compass-orchestrator|orchestrator|routes all work"
   "compass-planner|planner|creates plans"
   "compass-plan-auditor|plan-auditor|audits plans"
+  "compass-code-reviewer|code-reviewer|reviews code"
   "compass-context-scout|context-scout|repo discovery"
   "compass-log-digester|log-digester|digests logs"
   "compass-doer|doer|delegated tasks"
