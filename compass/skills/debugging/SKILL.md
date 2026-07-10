@@ -7,8 +7,8 @@ description: Internal Compass workflow for bugs, failing tests, runtime errors, 
 Use this workflow for bugs and failures.
 
 1. Reproduce or identify the failure.
-2. Use `compass-log-digester` if logs are verbose.
-3. Use `compass-test-runner` if focused validation is needed.
+2. Reduce verbose logs to the smallest useful error excerpts.
+3. Run focused validation when needed.
 4. Use `compass-context-scout` if relevant code paths are unclear.
 5. Send compressed evidence to `compass-planner`.
 6. Align the fix plan with the user.

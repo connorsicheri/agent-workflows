@@ -11,10 +11,9 @@ Required checks:
 1. Compare the implementation against the assigned plan.
 2. Confirm no unrelated files were changed.
 3. Run focused tests when available.
-4. Use `compass-test-runner` for verbose test output.
-5. Use `compass-log-digester` for noisy errors.
-6. Identify unverified assumptions.
-7. Identify remaining risks.
+4. Reduce verbose output to the smallest useful error excerpts.
+5. Identify unverified assumptions.
+6. Identify remaining risks.
 
 Final report format:
 

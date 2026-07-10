@@ -11,7 +11,7 @@ Use this workflow for behavior-preserving changes.
 3. Have the planner define the refactor boundary.
 4. Present the plan to the user.
 5. Use `compass-implementer`.
-6. Use `compass-test-runner` for validation.
+6. Run focused validation.
 
 The planner must define:
 

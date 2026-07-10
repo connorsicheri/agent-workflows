@@ -58,34 +58,6 @@ End with:
 What should we work on?
 ```
 
-## Compass Dashboard
-
-Compass maintains a live HTML dashboard at `.compass/dashboard.html`.
-It opens automatically in the browser at session start and auto-refreshes every 2 seconds.
-Each Compass session gets its own file (keyed by a persisted session ID), so concurrent sessions do not conflict.
-
-Update the dashboard by running the update script whenever Compass state changes:
-
-- The session starts.
-- The phase changes.
-- An agent starts or finishes work.
-- The TODO count changes.
-- The active plan changes.
-- A planner or auditor evidence request is created or resolved.
-- Multiple agents are active in parallel.
-- Work is blocked.
-- The final summary is delivered.
-
-Startup command (run at session start before the first user-facing message):
-
-```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
-```
-
-The script outputs the dashboard file path. At session start, pass `--init` so
-it opens the browser automatically.
-Do not link to the dashboard file in chat — it opens itself.
-
 ## TODO Board
 
 The orchestrator owns the master Compass TODO Board. Subagents receive assigned
@@ -133,23 +105,24 @@ If the planned work is split into independent execution groups, use the parallel
 handoff format instead. Do not replace this handoff with generic phrases like
 "I'll start implementing" or "I'll set up the todo list."
 
-## Integration Handoff
+## Implementation Review Checkpoint
 
-When an implementer returns changes from an isolated worktree, route integration
-through `compass-merge-agent` before verification:
+Compass implementation happens directly on the target branch/current working
+tree. When review is needed before verification, route the target working tree
+diff to `compass-code-reviewer`:
 
 ```text
-Compass: compass-orchestrator · integration · launching merge agent · active: compass-merge-agent · todo: <done>/<total>
-Compass handoff: compass-merge-agent
-Purpose: review and integrate accepted worktree changes onto the target branch.
+Compass: compass-orchestrator · code-review · launching code review · active: compass-code-reviewer · todo: <done>/<total>
+Compass handoff: compass-code-reviewer
+Purpose: review the target working tree diff before verification.
 Mode: sequential
 ```
 
-After integration:
+After review:
 
 ```text
-Compass: compass-orchestrator · verification · summarizing merge result · active: none · todo: <done>/<total>
-Compass return: compass-merge-agent
+Compass: compass-orchestrator · verification · summarizing review result · active: none · todo: <done>/<total>
+Compass return: compass-code-reviewer
 Result: <one sentence>
 ```
 
@@ -177,8 +150,10 @@ Result: <one sentence>
 
 ## Parallel Handoff
 
-Use this for any parallel group, whether the members are implementers working
-write-safe execution groups or context scouts answering independent questions.
+Use this for any parallel group, whether the members are planners covering
+independent lanes, doers handling independent ordinary tasks, implementers
+working write-safe execution groups, or context scouts answering independent
+questions.
 
 Before launching parallel work:
 

@@ -1,191 +1,142 @@
-# Agent Workflows
+# Compass Agent System
 
-This repository contains Compass, a Claude Code plugin that turns a chat into a
-routed engineering workspace.
+Compass is a Claude Code plugin that turns a chat into a routed engineering
+workspace. Start a Compass session once, then work normally while
+`compass-orchestrator` coordinates planning, context gathering, implementation,
+code review, and verification through focused subagents.
 
-Compass is designed to be started once for a session with:
-
-```text
-/compass
-```
-
-After that, the user speaks to `compass-orchestrator`, which coordinates
-planning, context gathering, implementation, code review, test execution, log
-digestion, and verification through focused subagents.
-
-Compass starts with conversation before deep search when that would help. The
-orchestrator asks for useful search hints first, then launches
-`compass-context-scout` only when repository evidence is needed or requested.
-
-## What Was Built
-
-The plugin source lives in:
-
-```text
-compass/
-```
-
-Important files:
+## Repository Layout
 
 - `compass/.claude-plugin/plugin.json`: plugin manifest.
-- `compass/settings.json`: sets the base session agent to
-  `compass-orchestrator`.
-- `compass/commands/compass.md`: global `/compass` launcher behavior.
-- `compass/agents/`: Compass orchestrator and subagent definitions.
-- `compass/skills/`: internal workflows used by the orchestrator, including
-  `context-packets` for subagent packet construction and `change-walkthrough`
-  for local HTML reviewer artifacts.
-- `claude-orchestration-workflow/Claude Code Routed Agent System Plan.md`:
-  detailed design notes and implementation plan.
+- `compass/settings.json`: default session-agent and subagent status-line
+  settings.
+- `compass/scripts/compass`: POSIX launcher.
+- `compass/scripts/compass.ps1`: PowerShell launcher.
+- `compass/bin/compass-statusline`: main Claude Code status-line formatter.
+- `compass/bin/compass-subagent-statusline`: subagent panel row formatter.
+- `compass/commands/compass.md`: `/compass` recentering command.
+- `compass/agents/`: orchestrator and specialist agent definitions.
+- `compass/skills/`: internal Compass workflows and packet formats, including
+  `change-walkthrough` for local review artifacts.
 
-## Integration Approach
+## Requirements
 
-The original idea was to install Compass through a local Claude Code marketplace.
-That was attempted, but the machine's enterprise policy only allowed the
-official Anthropic marketplace:
+- Claude Code CLI available as `claude`.
+- Node.js available as `node` for the status-line scripts.
+- Bash, zsh, or another shell that can run the POSIX launcher, or PowerShell
+  for the `.ps1` launcher.
 
-```text
-Marketplace source 'dir:/Users/RBICS079/Projects/agent-workflows' is blocked by enterprise policy.
-Allowed sources: github:anthropics/claude-plugins-official
-```
+## Start A Session
 
-Because of that, Compass was integrated through Claude's personal local plugin
-and command paths instead.
-
-The registered plugin path is a symlink:
-
-```text
-~/.claude/skills/compass
-  -> /Users/RBICS079/Projects/agent-workflows/compass
-```
-
-The global command is also a symlink:
-
-```text
-~/.claude/commands/compass.md
-  -> /Users/RBICS079/Projects/agent-workflows/compass/commands/compass.md
-```
-
-This gives the useful development behavior: edit the source in this repository,
-then reload Claude Code or start a new VS Code Claude session to pick up the
-changes.
-
-## Validation
-
-The plugin was validated through the registered path:
+From the repository root on macOS, Linux, or other POSIX shells:
 
 ```bash
-claude plugin validate /Users/RBICS079/.claude/skills/compass
+./compass/scripts/compass
+./compass/scripts/compass advanced
 ```
 
-Expected result:
+From PowerShell:
 
-```text
-Validating plugin manifest: /Users/RBICS079/.claude/skills/compass/.claude-plugin/plugin.json
-
-✔ Validation passed
+```powershell
+.\compass\scripts\compass.ps1
+.\compass\scripts\compass.ps1 advanced
 ```
+
+To inspect the exact Claude command without launching:
+
+```bash
+./compass/scripts/compass --print-launch
+```
+
+```powershell
+.\compass\scripts\compass.ps1 --print-launch
+```
+
+You can also run Claude directly from the repository root:
+
+```bash
+claude --plugin-dir ./compass --agent compass:compass-orchestrator
+claude --plugin-dir ./compass --agent compass:compass-advanced-orchestrator
+```
+
+The direct command skips the custom main status line, but it still loads the
+Compass plugin and agents.
+
+## Optional PATH Setup
+
+If you want `compass` to be available as a command on POSIX systems:
+
+```bash
+mkdir -p "$HOME/.local/bin"
+ln -sf "$PWD/compass/scripts/compass" "$HOME/.local/bin/compass"
+```
+
+Make sure `$HOME/.local/bin` is on `PATH`. PowerShell users can run the `.ps1`
+launcher directly or create their own profile alias to that script.
 
 ## Runtime Behavior
 
-When `/compass` starts, Compass should announce:
-
-```text
-Compass active. You are speaking with compass-orchestrator.
-```
-
-The base session agent is:
+When Compass starts, the active agent is:
 
 ```text
 compass-orchestrator
 ```
 
+Advanced mode starts:
+
+```text
+compass-advanced-orchestrator
+```
+
 Compass does not show model names in user-facing banners because the runtime
-model may be selected by Claude Code or the VS Code extension. The plugin still
-declares preferred model tiers internally:
+model may be selected by Claude Code. The plugin still declares preferred model
+tiers internally:
 
-- `compass-orchestrator`: Opus medium.
+- `compass-orchestrator`: Sonnet 5 1M max.
+- `compass-advanced-orchestrator`: Opus medium.
 - `compass-planner`: Opus.
-- `compass-plan-auditor`: Opus.
+- `compass-complex-planner`: Fable max, only when explicitly requested.
+- `compass-plan-auditor`: Opus max.
 - `compass-code-reviewer`: Opus.
-- `compass-doer`: Sonnet 1M.
-- `compass-implementer`: Sonnet 1M.
-- `compass-merge-agent`: Opus.
+- `compass-doer`: Sonnet 4.6 1M.
+- `compass-implementer`: Sonnet 4.6 1M.
 - `compass-context-scout`: Haiku.
-- `compass-log-digester`: Haiku.
-- `compass-test-runner`: Haiku.
 
-The copied `visual-plan` and `visual-recap` skills are parked as deprecated
-source material under `compass/skills/`; Compass does not route to them by
-default.
+`/compass` recenters an already-running chat on the Compass workflow, but it
+cannot change the main session agent after launch. For the most durable
+experience, start the session with one of the launchers above.
 
-## Visibility Protocol
+## Routing Model
+
+Compass starts with a short intake chat before deep search when that would help.
+The orchestrator asks for useful search hints first, then launches
+`compass-context-scout` only when repository evidence is needed or requested.
+
+For code-changing work, Compass plans first, creates focused Context Packets,
+then delegates implementation to one `compass-implementer` per write-safe
+execution group. When extra confidence is needed, it routes the target working
+tree diff to `compass-code-reviewer` before final verification.
+
+Compass does not create implementation worktrees and does not attempt remote
+publishing from sandboxed Claude sessions. For actions such as `git push`,
+opening PRs, editing PR descriptions, or posting remote comments, Compass
+prepares local state or draft text and reports the command for the user to run
+outside the sandbox.
+
+## Visibility
 
 Compass is intentionally explicit about routing. It should show the user when a
-subagent is being used, why it is being used, and whether the work is sequential
-or parallel.
+subagent is being used, why it is being used, and whether work is sequential or
+parallel.
 
-Compass uses a quiet inline status line by default:
+The default user-facing status line is quiet and inline:
 
 ```text
 Compass: compass-orchestrator · planning · relaying planner update · active: compass-planner · todo: 1/4
 ```
 
-The status line should stay plain and low-emphasis; it should never use HTML
-tags, Markdown emphasis, a pipe-delimited banner, heading, table, or multi-line
-panel.
-
-Compass automatically maintains the live dashboard artifact:
-
-```text
-.compass/dashboard.html
-```
-
-The orchestrator should update it whenever Compass state changes: session
-start, phase changes, agent starts/finishes, TODO state changes, plan changes,
-evidence requests, audit requests, parallel work, blocked states, and final
-summary. The dashboard opens automatically at session start and refreshes every
-2 seconds.
-
-Compass updates the dashboard through one deterministic Bash path instead of
-choosing between file tools at runtime:
-
-```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
-```
-
-The updater creates `.compass`, writes a temporary dashboard file, then moves it
-into place.
-
-`compass-orchestrator` owns the master Compass TODO Board. Subagents receive
-assigned TODO items and focused Context Packets, then report status back.
-
-Expanded TODO Board example:
-
-```text
-Compass TODO Board
-- [done] Context scan checkout validation paths
-- [active] Planner drafts scoped implementation plan
-- [queued] Implement validation helper
-- [queued] Add validation tests
-- [blocked] Resolve plan conflict
-```
-
-Context Packet shapes live in `compass/skills/context-packets/SKILL.md`. The
-orchestrator uses the base packet plus the relevant subagent profile before
-each handoff.
-
-The planner can request more context before producing a plan. The Planner
-Evidence Request format also lives in `context-packets`.
-
-The orchestrator owns that loop: it adds a TODO item, sends a targeted Context
-Packet to the right agent, and returns compressed evidence to the planner.
-
-The user can also ask Compass to audit the plan. Compass routes that to
-`compass-plan-auditor` with an Audit Packet containing the current plan, TODO
-Board, stored context, evidence summaries, assumptions, risks, execution
-groups, and stop conditions. Audit results are `pass`, `pass-with-notes`,
-`needs-revision`, `needs-more-context`, or `block`.
+The orchestrator owns the master Compass TODO Board. Subagents receive assigned
+TODO items and focused Context Packets, then report status back.
 
 Sequential handoff example:
 
@@ -193,14 +144,6 @@ Sequential handoff example:
 Compass handoff: compass-context-scout
 Purpose: find the checkout validation code paths.
 Mode: sequential
-```
-
-Return example:
-
-```text
-Compass return: compass-context-scout
-Result: found the form component, validation helper, and existing tests.
-Next: ask compass-planner for a scoped plan.
 ```
 
 Parallel group example:
@@ -213,32 +156,16 @@ Agents:
 Join condition: both agents complete without plan conflicts.
 ```
 
-## Updating Compass
+## Validation
 
-Because the global registration uses symlinks, changes should be made directly
-in this repository under `compass/`.
-
-After editing, validate with:
+Run the contract checks from the repository root:
 
 ```bash
-claude plugin validate /Users/RBICS079/.claude/skills/compass
+./compass/scripts/test-compass-contracts.sh
 ```
 
-Then reload Claude Code or start a fresh VS Code Claude session.
-
-## Recreating The Integration
-
-If this setup needs to be recreated on the same machine:
+If the Claude CLI is available, validate the plugin manifest:
 
 ```bash
-mkdir -p /Users/RBICS079/.claude/skills
-ln -s /Users/RBICS079/Projects/agent-workflows/compass /Users/RBICS079/.claude/skills/compass
-
-mkdir -p /Users/RBICS079/.claude/commands
-ln -s /Users/RBICS079/Projects/agent-workflows/compass/commands/compass.md /Users/RBICS079/.claude/commands/compass.md
-
-claude plugin validate /Users/RBICS079/.claude/skills/compass
+claude plugin validate ./compass
 ```
-
-If the symlinks already exist, remove or update them intentionally rather than
-creating duplicates.

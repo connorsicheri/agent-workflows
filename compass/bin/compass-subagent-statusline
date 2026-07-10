@@ -1,0 +1,149 @@
+#!/usr/bin/env node
+'use strict';
+
+const path = require('path');
+
+let input = '';
+
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => {
+  input += chunk;
+});
+
+process.stdin.on('end', () => {
+  let payload;
+
+  try {
+    payload = JSON.parse(input || '{}');
+  } catch {
+    return;
+  }
+
+  const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+  const columns = clamp(Number(payload.columns) || 100, 32, 200);
+
+  for (const task of tasks) {
+    if (!task || task.id == null) continue;
+
+    const content = buildRow(task, payload, columns);
+    process.stdout.write(`${JSON.stringify({ id: String(task.id), content })}\n`);
+  }
+});
+
+function buildRow(task, payload, columns) {
+  const name = formatName(task.name || task.label || task.type || 'agent');
+  const status = formatStatus(task.status);
+  const description = clean(task.description || task.label || '');
+  const tokenText = formatTokens(task.tokenCount ?? latestTokenSample(task.tokenSamples));
+  const cwd = formatCwd(task.cwd || payload.cwd || payload.workspace?.current_dir || '');
+  const elapsed = formatElapsed(task.startTime);
+
+  const prefix = `Compass ${name} ${status}`;
+  const suffixParts = [tokenText, cwd, elapsed].filter(Boolean);
+  const suffix = suffixParts.length ? ` | ${suffixParts.join(' | ')}` : '';
+
+  if (!description) return truncate(`${prefix}${suffix}`, columns);
+
+  const roomForDescription = columns - visibleLength(prefix) - visibleLength(suffix) - 3;
+  if (roomForDescription < 8) return truncate(`${prefix}${suffix}`, columns);
+
+  return `${prefix} | ${truncate(description, roomForDescription)}${suffix}`;
+}
+
+function formatName(raw) {
+  const value = clean(raw).replace(/^compass:/, '');
+  const aliases = {
+    'compass-code-reviewer': 'reviewer',
+    'compass-complex-planner': 'complex-planner',
+    'compass-context-scout': 'scout',
+    'compass-doer': 'doer',
+    'compass-implementer': 'implementer',
+    'compass-plan-auditor': 'auditor',
+    'compass-planner': 'planner',
+  };
+
+  return aliases[value] || value.replace(/^compass-/, '') || 'agent';
+}
+
+function formatStatus(raw) {
+  const value = clean(raw).toLowerCase();
+  const aliases = {
+    cancelled: 'cancelled',
+    complete: 'done',
+    completed: 'done',
+    done: 'done',
+    error: 'failed',
+    failed: 'failed',
+    pending: 'queued',
+    queued: 'queued',
+    running: 'running',
+    started: 'running',
+    success: 'done',
+  };
+
+  return aliases[value] || value || 'active';
+}
+
+function formatTokens(raw) {
+  const count = Number(raw);
+  if (!Number.isFinite(count) || count <= 0) return '';
+  if (count >= 1000000) return `${trimFixed(count / 1000000)}M tok`;
+  if (count >= 1000) return `${trimFixed(count / 1000)}k tok`;
+  return `${Math.round(count)} tok`;
+}
+
+function latestTokenSample(samples) {
+  if (!Array.isArray(samples) || samples.length === 0) return undefined;
+  const last = samples[samples.length - 1];
+  if (typeof last === 'number') return last;
+  if (last && typeof last === 'object') return last.tokenCount ?? last.tokens;
+  return undefined;
+}
+
+function formatCwd(raw) {
+  const value = clean(raw);
+  if (!value) return '';
+  return path.basename(value) || value;
+}
+
+function formatElapsed(raw) {
+  if (!raw) return '';
+
+  const start = typeof raw === 'number'
+    ? new Date(raw < 10000000000 ? raw * 1000 : raw)
+    : new Date(raw);
+
+  const elapsedMs = Date.now() - start.getTime();
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 1000) return '';
+
+  const seconds = Math.floor(elapsedMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+
+  return `${Math.floor(minutes / 60)}h`;
+}
+
+function clean(value) {
+  return String(value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function truncate(value, width) {
+  const text = clean(value);
+  if (visibleLength(text) <= width) return text;
+  if (width <= 3) return '.'.repeat(Math.max(width, 0));
+  return `${text.slice(0, width - 3)}...`;
+}
+
+function visibleLength(value) {
+  return String(value).length;
+}
+
+function trimFixed(value) {
+  return value.toFixed(1).replace(/\.0$/, '');
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}

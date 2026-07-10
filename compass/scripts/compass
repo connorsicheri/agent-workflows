@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  SOURCE_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  TARGET="$(readlink "$SOURCE")"
+  if [[ "$TARGET" == /* ]]; then
+    SOURCE="$TARGET"
+  else
+    SOURCE="$SOURCE_DIR/$TARGET"
+  fi
+done
+
+COMPASS_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+AGENT="compass-orchestrator"
+STATUS_SETTINGS='{"statusLine":{"type":"command","command":"\"${COMPASS_PLUGIN_ROOT}/bin/compass-statusline\"","padding":1,"refreshInterval":5}}'
+export COMPASS_PLUGIN_ROOT="$COMPASS_DIR"
+
+usage() {
+  cat <<'EOF'
+Usage: compass [advanced] [--print-launch] [claude args...]
+
+Start a Claude Code Compass session from this plugin checkout.
+
+Commands:
+  advanced        Start with compass-advanced-orchestrator.
+  --print-launch Print the Claude command instead of executing it.
+EOF
+}
+
+if [[ "${1:-}" == "advanced" ]]; then
+  AGENT="compass-advanced-orchestrator"
+  shift
+fi
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ "${1:-}" == "--print-launch" ]]; then
+  printf 'COMPASS_PLUGIN_ROOT=%q claude --settings %q --plugin-dir %q --agent %q' "$COMPASS_DIR" "$STATUS_SETTINGS" "$COMPASS_DIR" "compass:$AGENT"
+  shift
+  for arg in "$@"; do
+    printf ' %q' "$arg"
+  done
+  printf '\n'
+  exit 0
+fi
+
+if ! command -v claude >/dev/null 2>&1; then
+  printf 'error: Claude Code CLI not found on PATH: claude\n' >&2
+  exit 127
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  printf 'error: Node.js not found on PATH: node\n' >&2
+  printf 'Compass uses node for status-line formatting.\n' >&2
+  exit 127
+fi
+
+exec claude --settings "$STATUS_SETTINGS" --plugin-dir "$COMPASS_DIR" --agent "compass:$AGENT" "$@"

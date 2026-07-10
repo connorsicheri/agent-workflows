@@ -5,61 +5,74 @@ engineering session.
 
 When Compass is active, the main chat runs as `compass-orchestrator`. The
 orchestrator coordinates focused agents for ordinary task execution, context
-gathering, planning, implementation, code review, log digestion, test execution,
-and final verification.
+gathering, planning, implementation, code review, and final verification.
 
-## Intended Experience
+## Launching
 
 Compass is most reliable when the orchestrator is the main-thread agent, set at
 launch. Launched that way, `compass-orchestrator` owns the session with a durable
 identity: its system prompt stays active every turn and survives long
 conversations and context compaction.
 
-Launch a durable Compass session from a project's integrated terminal:
+From the repository root on POSIX shells:
 
 ```bash
-claude --plugin-dir /Users/RBICS079/Projects/agent-workflows/compass \
-  --agent compass:compass-orchestrator
+./compass/scripts/compass
+./compass/scripts/compass advanced
 ```
 
-A shell alias keeps this to one word:
+From PowerShell:
+
+```powershell
+.\compass\scripts\compass.ps1
+.\compass\scripts\compass.ps1 advanced
+```
+
+The launcher expands those commands to Claude CLI invocations using the local
+plugin directory. To inspect the exact command:
 
 ```bash
-alias compass='claude --plugin-dir /Users/RBICS079/Projects/agent-workflows/compass --agent compass:compass-orchestrator'
+./compass/scripts/compass --print-launch
 ```
 
-Confirm `@compass-orchestrator` appears in the startup header, then describe the
-task normally. (If the host reports "agent not found", try the inline namespace
-`compass@inline:compass-orchestrator`.)
+```powershell
+.\compass\scripts\compass.ps1 --print-launch
+```
 
-### Re-centering with /compass
+You can also launch directly:
+
+```bash
+claude --plugin-dir ./compass --agent compass:compass-orchestrator
+claude --plugin-dir ./compass --agent compass:compass-advanced-orchestrator
+```
+
+The direct command skips the custom main status line, but it still loads the
+Compass plugin and agents.
+
+### Re-centering with `/compass`
 
 ```text
 /compass
 ```
 
-`/compass` does not launch the orchestrator as the main-thread agent — the
-main-thread agent can only be set at launch. It re-centers the current chat on
+`/compass` does not launch the orchestrator as the main-thread agent. The
+main-thread agent can only be set at launch. It recenters the current chat on
 the Compass workflow as a one-shot prompt, which can fade over a long session.
-Use it when a session was not launched as `compass-orchestrator` (for example,
-the VS Code chat panel, which has no launch-flag support), or to reaffirm the
-role mid-session. For durable identity, launch with `--agent` as shown above.
-
-### Enterprise policy note
-
-Always-on activation (a registered plugin marketplace plus the bundled
-`settings.json` `agent` key) is blocked by RBI managed settings, which allowlist
-only the official Anthropic marketplace. The `--plugin-dir` opt-in above is a
-session-only dev load that does not register a marketplace, so it works with no
-policy change. To enable always-on or the native chat panel later, open an ITSEC
-ticket to allowlist the Compass marketplace source.
+Use it when a session was not launched as `compass-orchestrator`, or to reaffirm
+the role mid-session. It cannot switch an already-running session into advanced
+mode; start a new session with `compass advanced` instead.
 
 ## Local Testing
 
-After launching with the command above, confirm:
+After launching with one of the commands above, confirm:
 
-- `@compass-orchestrator` appears in the startup header and is the session agent.
+- `@compass-orchestrator` or `@compass-advanced-orchestrator` appears in the
+  startup header and is the session agent.
+- The bottom Claude Code status line starts with `Compass orchestrator` or
+  `Compass advanced`.
 - The Compass agents appear in `/agents`.
+- Active Compass subagents use compact custom rows in the Claude Code agent
+  panel.
 - A task that changes code produces a plan before implementation, then proceeds
   without an extra Compass checkpoint unless the user requests one.
 
@@ -70,20 +83,20 @@ for chats where the plugin is loaded or enabled.
 
 The role boundaries are:
 
-- `compass-orchestrator`: Opus medium main session agent and user-facing
+- `compass-orchestrator`: Sonnet 5 1M max main session agent and user-facing
   router.
-- `compass-doer`: Sonnet 1M general execution for ordinary delegated tasks.
+- `compass-advanced-orchestrator`: Opus medium advanced main session agent and
+  user-facing router.
+- `compass-doer`: Sonnet 4.6 1M general execution for ordinary delegated tasks.
 - `compass-context-scout`: read-only codebase discovery.
 - `compass-planner`: read-only planning and user-alignment support.
-- `compass-plan-auditor`: independent read-only plan audit.
+- `compass-complex-planner`: Fable max read-only planning for explicit complex,
+  Fable, or deep-planning requests only.
+- `compass-plan-auditor`: Opus max independent read-only plan audit.
 - `compass-code-reviewer`: independent read-only review of implemented code,
   diffs, branches, worktrees, or PR changes.
-- `compass-implementer`: Sonnet 1M scoped implementation from an assigned
+- `compass-implementer`: Sonnet 4.6 1M scoped implementation from an assigned
   plan.
-- `compass-merge-agent`: Opus integration of accepted worktree changes onto the
-  target branch.
-- `compass-log-digester`: noisy log and stack trace compression.
-- `compass-test-runner`: focused validation and test summaries.
 
 The `context-packets` skill defines how `compass-orchestrator` injects focused
 context into each subagent type.
@@ -96,31 +109,31 @@ they do not know where to look, or the planner/auditor needs evidence.
 
 For simple and nuanced questions, explanations, tradeoff discussion,
 architecture or product reasoning, debugging theory, or "help me think this
-through" requests, the Opus orchestrator answers directly. If repository
-evidence is needed, it routes a targeted `compass-context-scout` packet first.
+through" requests, the orchestrator answers directly. If repository evidence is
+needed, it routes a targeted `compass-context-scout` packet first.
 
 After presenting a plan, Compass should not drift into generic "I'll start
-implementing" narration or ask for another checkpoint by default. The orchestrator
-announces a visible handoff and launches `compass-implementer` with the planned
-tasks and focused Context Packet. For ordinary tool-using tasks that are not
-implementation plans, it launches `compass-doer`.
+implementing" narration or ask for another checkpoint by default. The
+orchestrator announces a visible handoff and launches scoped
+`compass-implementer` agents directly in the target working tree, with one
+implementer per write-safe execution group. For ordinary tool-using tasks that
+are not implementation plans, it launches `compass-doer`.
 
-For PR, branch, worktree, local diff, or file-list walkthrough requests,
-Compass routes to `compass-doer` with the `change-walkthrough` skill. The
-default output is a local `local-notes/<slug>.html` reviewer artifact. PR body
-updates are separate explicit tasks and should be split into a separate doer
-when requested alongside the walkthrough.
+For PR, branch, worktree, local diff, or file-list walkthrough requests, Compass
+routes to `compass-doer` with the `change-walkthrough` skill. The default output
+is a local `local-notes/<slug>.html` reviewer artifact. PR body updates are
+separate explicit tasks and should be split into a separate doer when requested
+alongside the walkthrough.
 
-Compass does not currently route to `visual-plan` or `visual-recap`. Those
-copied skills are parked as deprecated source material until Compass has a
-repo-owned viewer or a clearer local artifact workflow.
+Compass does not create implementation worktrees. Implementation happens
+directly in the target branch or current working tree. When extra confidence is
+needed before verification, Compass routes the target working tree diff to
+`compass-code-reviewer`.
 
-When an implementer uses an isolated worktree, Compass routes the result through
-`compass-merge-agent` before verification. The orchestrator coordinates the
-handoff, but Opus owns merge judgment and integration back onto the target
-branch. After successful integration, `compass-merge-agent` removes the
-Compass-created worktree by default. Preserved worktrees must be reported with
-the reason they remain.
+Compass does not attempt remote publishing from the Claude sandbox. For actions
+such as `git push`, opening or editing PRs, or posting remote comments, Compass
+prepares local state, drafts the remote update text, and reports the exact
+command for the user to run outside the sandbox.
 
 ## Visibility
 
@@ -141,28 +154,6 @@ At session start, Compass also announces:
 ```text
 Compass active. You are speaking with compass-orchestrator.
 ```
-
-Compass automatically maintains the live dashboard artifact:
-
-```text
-.compass/dashboard.html
-```
-
-The orchestrator should update it whenever Compass state changes: session
-start, phase changes, agent starts/finishes, TODO state changes, plan changes,
-evidence requests, audit requests, parallel work, blocked states, and final
-summary. The dashboard opens automatically at session start and refreshes every
-2 seconds.
-
-Compass updates the dashboard through one deterministic Bash path instead of
-choosing between file tools at runtime:
-
-```bash
-bash /Users/RBICS079/Projects/agent-workflows/compass/scripts/update-compass-map.sh "$PWD" orientation none 0/0 "session start" "awaiting user input" --init
-```
-
-The updater creates `.compass`, writes a temporary dashboard file, then moves it
-into place.
 
 ## TODO Ownership
 
@@ -194,12 +185,13 @@ intended receiving agent before the handoff.
 
 Compass defaults to parallel. When units of work have no shared write targets
 and no data dependency, the orchestrator runs them at the same time and joins
-their results before continuing — one implementer per write-safe execution
-group, and one context scout per independent question. Work stays sequential
-only when one unit's output feeds another, the units touch the same files, or a
-sequential decision is required. Concurrency comes from launching the group in a
-single message with one agent call per member; a group launched one agent per
-message would run sequentially instead.
+their results before continuing: one planner per independent planning lane or
+competing option, one doer per independent ordinary task, one implementer per
+write-safe execution group, and one context scout per independent question.
+Work stays sequential only when one unit's output feeds another, the units touch
+the same files, or a sequential decision is required. Concurrency comes from
+launching the group in a single message with one agent call per member; a group
+launched one agent per message would run sequentially instead.
 
 ## Planner-Requested Evidence
 

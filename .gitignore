@@ -1,0 +1,9 @@
+.DS_Store
+
+# Local Claude/Compass runtime artifacts.
+/.cache/
+/.claude/
+/.claude-plugin/
+/.compass/
+/compass/.compass/
+/local-notes/

@@ -23,6 +23,29 @@ the requested output shape.
 - State stop conditions that should return control to `compass-orchestrator`.
 - For parallel groups, give each subagent a packet with distinct write targets
   or independent evidence questions.
+- For planning, build one `compass-planner` packet per independent planning
+  lane, risk area, or competing implementation option. Do not collapse multiple
+  independent lanes into one broad planner packet unless a single architectural
+  decision must be made first.
+- Build a `compass-complex-planner` packet only when the user explicitly asks
+  for the complex planner, Fable planner, or deep planning mode. Do not infer
+  this route from task size, risk, ambiguity, or failed attempts. Include the
+  explicit user direction in the packet.
+- For implementation plans, build one `compass-implementer` packet per
+  Execution Group. Do not make the full approved plan the assigned scope for a
+  single implementer unless the planner produced exactly one sequential group.
+  Each implementer packet must be implementation-ready: exact allowed files,
+  ordered edit steps, expected behavior change, validation command, and stop
+  conditions. If the orchestrator cannot fill those fields, return to planning
+  or evidence gathering instead of launching implementation.
+  Set implementation mode to direct target branch/current working tree. Do not
+  ask implementers to create isolated worktrees.
+  Do not assign "all groups", "Groups 1-N", "all steps", the whole plan, or
+  multiple independent execution groups to one implementer. Run the
+  Implementation Launch Gate before launch.
+- For ordinary delegated work, build one `compass-doer` packet per independent
+  artifact, inspection, command, file update, repository object, URL, or
+  external side effect.
 - Run the Packet Quality Checklist before launching any subagent.
 - Use Packet Review only when the checklist flags risk or the packet will drive
   high-impact work.
@@ -67,8 +90,8 @@ Trigger Packet Review when any of these are true:
 - The user asks for extra caution.
 - The orchestrator has low confidence after the Packet Quality Checklist.
 
-Do not use Packet Review for narrow scout, log-digester, test-runner, or doer
-tasks when the checklist passes and the blast radius is low.
+Do not use Packet Review for narrow scout or doer tasks when the checklist
+passes and the blast radius is low.
 
 ### Packet Review Bundle
 
@@ -146,10 +169,22 @@ commands or change files:
 - Do not create or modify repository files with shell writes: `echo`,
   `printf`, `cat >`, heredocs, `tee`, `sed -i`, `>` or `>>`.
 - Use Edit, Write, or MultiEdit-style tooling for file changes.
+- Do not run remote publishing or remote-write commands from the Claude sandbox:
+  `git push`, `gh pr create`, `gh pr edit`, `gh pr merge`, `gh issue edit`,
+  remote comments/posts, or remote service updates. Draft the remote update and
+  command for the user to run outside the sandbox instead.
 - Do not hide command failures with `>/dev/null` or `2>/dev/null`; let failures
   surface so they can be summarized.
 
 ## Agent Packet Profiles
+
+## User-Facing Report Agents
+
+`compass-planner`, `compass-plan-auditor`, and `compass-code-reviewer` produce
+polished reports for the user. The orchestrator should relay those reports with
+minimal framing and use the required Compass Routing Footer for routing
+decisions. Packets for these agents should ask for a complete user-facing
+report, not private notes for the orchestrator.
 
 ### `compass-context-scout`
 
@@ -162,16 +197,44 @@ Add:
 - Known files or symbols:
 - Areas to avoid:
 - Evidence needed:
-- Output limit:
+- Output limit: include max files/commands and max response size:
+- Budget guard: return partial evidence, gaps, and the next narrow evidence
+  request instead of continuing broad discovery:
+- Verdict required: yes/no, and verdict labels if applicable:
 
 Expected return format:
 
-1. Relevant files and why they matter.
-2. Important functions, classes, routes, schemas, or config entries.
-3. Dependency relationships.
-4. Constraints or risks discovered.
-5. Open questions.
-6. Compact recommendation for the planner.
+1. Verdict or direct answer first when the packet asks a targeted question.
+2. Relevant files and why they matter.
+3. Important functions, classes, routes, schemas, or config entries.
+4. Dependency relationships.
+5. Constraints or risks discovered.
+6. Open questions or evidence gaps.
+7. Compact recommendation for the planner, including the next narrow evidence
+   request if more scouting is needed.
+
+For claim verification, require this compact shape:
+
+```md
+## Verdict
+
+- Claim:
+- Verdict: valid | invalid | partially-valid | inconclusive
+- Confidence: high | medium | low
+- One-sentence reason:
+
+## Evidence
+
+- `path`: fact found
+
+## Gaps
+
+- Missing or unverified evidence:
+
+## Recommendation
+
+- Suggested next step:
+```
 
 ### `compass-planner`
 
@@ -180,6 +243,10 @@ Use when asking for a plan or plan revision.
 Add:
 
 - User request:
+- Planning lane or option:
+- Lane scope and boundaries:
+- Relationship to other planner lanes:
+- Expected join output:
 - Evidence summaries:
 - Non-goals:
 - Decisions needed:
@@ -197,6 +264,42 @@ Expected return format:
 - Risk Check.
 - Instructions For Implementer.
 - Stop Conditions.
+- Compass Routing Footer.
+
+### `compass-complex-planner`
+
+Use only when the user explicitly asks for the complex planner, Fable planner,
+or deep planning mode. Do not use this profile as an inferred escalation from
+normal planning, even for broad or high-risk work.
+
+Add:
+
+- User request:
+- Explicit user direction authorizing complex planner:
+- Planning lane or option:
+- Lane scope and boundaries:
+- Relationship to other planner lanes:
+- Expected join output:
+- Evidence summaries:
+- Non-goals:
+- Architecture decisions needed:
+- Candidate files:
+- Validation expectations:
+- Known risks:
+- Stop condition if explicit direction is missing: return to `compass-planner`.
+
+Expected return format:
+
+- User Alignment.
+- Recommendation.
+- Architecture And Sequencing Notes.
+- Implementation Plan.
+- Files Likely Involved.
+- Execution Groups.
+- Risk Check.
+- Instructions For Implementer.
+- Stop Conditions.
+- Compass Routing Footer.
 
 ### `compass-implementer`
 
@@ -204,53 +307,25 @@ Use for assigned implementation work only.
 
 Add:
 
-- Assigned plan excerpt:
+- Assigned plan excerpt for this execution group only:
 - Execution group:
-- Files allowed to change:
+- Files allowed to change for this execution group:
 - Files to read first:
+- Ordered edit steps:
+- Expected behavior change:
 - Prior subagent results:
-- Isolation mode: direct target branch, isolated worktree, or no preference:
+- Implementation mode: direct target branch/current working tree only:
 - Validation command:
+- Implementation Launch Gate result:
 - Plan conflict triggers:
 
 Expected return format:
 
-- Worktree path, if any.
 - Changed files.
 - Diff summary.
 - Behavior changed.
 - Validation run.
-- Integration readiness.
-- Remaining risks.
-- TODO item status.
-
-### `compass-merge-agent`
-
-Use when accepted implementation work from an isolated worktree must be reviewed
-and integrated onto the target branch or working tree.
-
-Add:
-
-- Target branch or working tree:
-- Implementer worktree path:
-- Implementer changed files:
-- Implementer diff summary:
-- Assigned plan excerpt:
-- Files allowed to integrate:
-- Validation already run:
-- Validation command after integration:
-- Cleanup policy: clean up after successful integration unless preservation is
-  explicitly requested.
-- Integration conflict triggers:
-
-Expected return format:
-
-- Worktree reviewed.
-- Target branch or working tree updated.
-- Changed files integrated.
-- Changes rejected or skipped, if any.
-- Validation run.
-- Worktree cleanup performed, or preservation reason.
+- Review readiness.
 - Remaining risks.
 - TODO item status.
 
@@ -278,6 +353,7 @@ Expected return format:
 - Open questions.
 - Review notes, including scope reviewed, checks performed, tests inspected,
   residual risk, and TODO item status.
+- Compass Routing Footer.
 
 If more evidence is needed before a reliable review, return one or more Code
 Review Evidence Requests:
@@ -287,57 +363,13 @@ Review Evidence Requests:
 
 - Question to answer:
 - Why it matters:
-- Suggested agent: compass-context-scout | compass-test-runner | compass-log-digester
+- Suggested agent: compass-context-scout | compass-doer
 - Suggested target:
 - Files, symbols, commands, or search terms:
 - Constraints:
 - Stop condition:
 - Expected evidence:
 ```
-
-### `compass-test-runner`
-
-Use for focused validation and test-output interpretation.
-
-Add:
-
-- Commands to run:
-- Changed files under test:
-- Expected result:
-- Failure interpretation needed:
-- Output limit:
-- Broader validation question:
-
-Expected return format:
-
-1. Commands run.
-2. Pass/fail result.
-3. Failing tests.
-4. Minimal error snippets.
-5. Probable cause.
-6. Suggested fix direction.
-7. Whether broader validation is needed.
-
-### `compass-log-digester`
-
-Use for verbose logs, CI output, stack traces, or command output.
-
-Add:
-
-- Log source:
-- Command that produced the output:
-- Question to answer:
-- Noise to ignore:
-- Smallest useful excerpt requested:
-
-Expected return format:
-
-1. Failing command or log source.
-2. Smallest relevant error excerpt.
-3. Likely root cause.
-4. Files or symbols probably involved.
-5. Suggested next diagnostic step.
-6. Whether the issue appears deterministic or flaky, if inferable.
 
 ### `compass-plan-auditor`
 
@@ -373,11 +405,18 @@ Expected return format:
 - Required Fixes.
 - Evidence Requests, if needed.
 - Recommendation.
+- Compass Routing Footer.
 
 ### `compass-doer`
 
 Use for ordinary delegated work that does not need the full code-change
 planning flow.
+
+For multi-item ordinary requests, use one doer packet per independent item. Do
+not ask one doer to inspect several unrelated repository objects, run unrelated
+commands, or create a local artifact in the same packet unless one output
+directly depends on another. Do not assign remote-write side effects to doers in
+the Claude sandbox; assign drafting/preparation instead.
 
 Add:
 
@@ -400,8 +439,8 @@ Expected return format:
 ## Planner Evidence Request
 
 When `compass-planner` needs more evidence, it returns this shape for the
-orchestrator to convert into one or more `compass-context-scout`,
-`compass-log-digester`, or `compass-test-runner` packets:
+orchestrator to convert into one or more `compass-context-scout` or
+`compass-doer` packets:
 
 ```md
 ## Planner Evidence Request

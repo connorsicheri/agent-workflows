@@ -15,9 +15,10 @@ not a PR update by default.
   the user specifies another path.
 - Keep it local-first and repo-private. Prefer ignored folders such as
   `local-notes/`; do not add the artifact to the PR diff unless requested.
-- Do not update the PR body, issue, or remote service unless the user explicitly
-  asks. If both an HTML artifact and a PR update are requested, Compass should
-  split them into separate doer tasks.
+- Do not update the PR body, issue, or remote service from the Claude sandbox.
+  If the user asks for a PR update, draft the text and exact command for the
+  user to run outside the sandbox. If both an HTML artifact and PR update text
+  are requested, Compass should split them into separate doer tasks.
 - Use normal file edit/write tooling for the HTML. Do not create it with shell
   redirects, heredocs, `tee`, or `echo >>`.
 - Do not require `npx`, hosted plan tooling, build tools, or external preview

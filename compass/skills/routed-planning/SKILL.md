@@ -15,68 +15,91 @@ Use this workflow for code-changing tasks inside a Compass session.
    clearly required before planning. When the need splits into independent
    questions, fan out one scout per question in parallel (see Parallel
    Execution) and join their results.
-5. Ask `compass-planner` to produce or refine a plan.
-6. If the planner returns a Planner Evidence Request, add a TODO item, build a
+5. Ask one or more `compass-planner` agents to produce or refine a plan. When
+   the planning problem has independent domains, separable risks, or competing
+   viable approaches, fan out planner lanes in parallel and join their reports.
+6. Use `compass-complex-planner` only when the user explicitly asks for the
+   complex planner, Fable planner, or deep planning mode. Do not infer this
+   route from task size, risk, ambiguity, or failed attempts.
+7. If the planner returns a Planner Evidence Request, add a TODO item, build a
    targeted Context Packet, retrieve the requested evidence, and return that
    evidence to the planner.
-7. Repeat the planner/evidence loop until the planner can produce a reliable
+8. Repeat the planner/evidence loop until the planner can produce a reliable
    plan, asks a user question, or reaches a stop condition.
-8. If the user asks to audit the plan, or the plan is high-risk, build an Audit
+9. If the user asks to audit the plan, or the plan is high-risk, build an Audit
    Packet and use `compass-plan-auditor`.
-9. Route audit findings before implementation.
-10. Present the plan and TODO Board to the user.
-11. Proceed to implementation unless the user asked for a manual checkpoint.
-12. Split planned TODO items into execution groups, defaulting to parallel (see
+10. Route audit findings before implementation.
+11. Present the plan and TODO Board to the user.
+12. Proceed to implementation unless the user asked for a manual checkpoint.
+13. Split planned TODO items into execution groups, defaulting to parallel (see
     Parallel Execution).
-13. Build a focused Context Packet for each subagent using the
+14. Build a focused Context Packet for each subagent using the
     `context-packets` skill.
-14. Use `compass-implementer` to execute the plan, launching write-safe groups
+15. Use `compass-implementer` to execute the plan, launching write-safe groups
     in parallel.
-15. If any implementer ran in an isolated worktree, use `compass-merge-agent`
-    to review and integrate accepted changes onto the target branch. The
-    orchestrator coordinates this handoff but does not perform the merge.
-16. Use `compass-test-runner` or `compass-log-digester` for validation output.
-17. Apply the verification gate before final response.
+16. Use `compass-code-reviewer` on the target working tree diff when review is
+    needed before final verification.
+17. Run focused validation and apply the verification gate before final
+    response.
 
 The orchestrator owns the master TODO Board. Subagents receive assigned TODO
 items and report status back; they do not mutate or reprioritize the master
 board.
 
-## Worktree Integration
+## Direct Implementation
 
-Treat isolated implementer worktrees as scratch state. The source of truth is
-the user's target branch or working tree after accepted changes have been
-integrated.
+Compass does not create implementation worktrees. The source of truth is the
+user's target branch or current working tree, and every `compass-implementer`
+packet must target that working tree directly.
 
-When an implementer returns worktree output, the next implementation step is a
-sequential handoff to `compass-merge-agent` with:
-
-- Target branch or working tree.
-- Implementer worktree path.
-- Changed files and diff summary.
-- Allowed files and assigned plan excerpt.
-- Validation already run by the implementer.
-- Cleanup policy for the worktree. Default to clean up after successful
-  integration unless the user asked to inspect the worktree.
-
-`compass-merge-agent` owns integration judgment, conflict handling, and applying
-accepted changes. It also owns cleanup for Compass-created worktrees after
-successful integration. The orchestrator must not manually copy, cherry-pick,
-merge, or clean up worktree changes.
+Do not route implementation through a separate integration agent. Do not ask a
+Compass subagent to create scratch worktrees, copy changes between worktrees,
+cherry-pick, merge, or integrate isolated implementation output. When review is
+needed before final verification, use `compass-code-reviewer` against the target
+working tree diff after implementation.
 
 ## Parallel Execution
 
-Default to parallel. This applies to both context gathering (multiple scouts for
+Default to parallel. This applies to planning (one planner per independent
+planning lane or competing option), context gathering (multiple scouts for
 independent questions), ordinary delegated work (one doer per independent write
-target or external side effect), and implementation (one implementer per
-write-safe execution group). Sequential is the deliberate exception, used only
-when one unit's output feeds another, units touch the same files, they change a
-shared public API, schema, or contract, or a sequential decision is required.
+target, artifact, command, repository object, or external side effect), and
+implementation (one implementer per write-safe execution group). Sequential is
+the deliberate exception, used only when one unit's output feeds another, units
+touch the same files, they change a shared public API, schema, or contract, or a
+sequential decision is required.
 
-Do not bundle independent artifact creation and remote updates into a single
-doer. A local artifact such as a walkthrough file and a remote change such as a
-PR description update should be separate parallel `compass-doer` launches when
-they share only the same source spec.
+Before any handoff, run a fan-out check. If the work contains two or more
+independent units, split them into separate packets and launch them together.
+Do not use a single broad planner, doer, scout, or implementer packet for
+convenience when independent packets would let the agents work in parallel.
+
+`compass-complex-planner` is not a risk-triggered escalation path. Use it only
+when the user explicitly directs Compass to use the complex planner, Fable
+planner, or deep planning mode, and include that explicit direction in the
+Context Packet. Otherwise use `compass-planner`.
+
+Do not bundle independent artifact creation, inspections, summaries, command
+runs, or file updates into a single doer. Do not assign remote writes to doers
+from the Claude sandbox. For requests such as pushing a branch, opening a PR,
+editing a PR body, or commenting on a remote issue, prepare local state, draft
+the remote update text, and report the exact command for the user to run outside
+the sandbox.
+
+Implementation handoffs must be code-ready before launch. The planner and
+orchestrator own decomposition: each `compass-implementer` packet must include
+exact allowed files, ordered edit steps, expected behavior change, validation
+command, and stop conditions. If those details are missing, gather more evidence
+or return to `compass-planner`; do not ask the implementer to figure out how to
+split the work, choose an approach, find write targets, or define completion.
+
+Run the Implementation Launch Gate before any implementer Agent call. The gate
+passes only when implementation mode is direct target branch/current working
+tree, every implementer packet maps to one execution group or tightly coupled
+sequential slice, and no packet assigns "all groups", "Groups 1-N", "all
+steps", or the whole plan. A plan with five or more independent execution groups
+should launch at least five scoped implementers across its parallel group(s)
+unless concrete dependencies force fewer.
 
 Concurrency requires the right launch shape: agents only run at the same time
 when launched in a single message with one Agent tool call per agent. Agents
