@@ -8,4 +8,5 @@ fi
 
 WORKDIR="${1:-$PWD}"
 exec codex -C "$WORKDIR" -m gpt-5.6-sol -c model_reasoning_effort=medium \
+  -c 'tui.status_line=["model-with-reasoning","run-state","context-remaining","git-branch"]' \
   'Use the compass-codex:compass skill. Start a Compass session and ask what we should work on.'

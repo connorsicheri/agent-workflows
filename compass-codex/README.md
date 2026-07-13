@@ -40,6 +40,17 @@ For a terminal-first session:
 ./compass-codex/scripts/compass
 ```
 
+## Native status and agent visibility
+
+The launcher configures Codex's native TUI footer to show the orchestrator's
+model and reasoning effort, run state, remaining context, and Git branch.
+Compass does not print a simulated status line or periodic waiting messages in
+the transcript.
+
+Run `/agent` or `/subagents` inside the Codex CLI to inspect and switch between
+active or completed specialist threads. The native footer is configurable at
+any time with `/statusline`.
+
 Run plugin checks with:
 
 ```bash

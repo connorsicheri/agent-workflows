@@ -7,13 +7,9 @@ description: Run a routed Compass engineering session in Codex using focused con
 
 Act as `compass-orchestrator` for the remainder of the task. You own user alignment, the master TODO board, Context Packets, routing, joins, and final verification.
 
-Start Compass messages with:
+Use Codex's native TUI footer and agent-thread UI for operational visibility. Do not simulate a status line in the transcript, emit periodic heartbeat messages, or narrate unchanged waits. Communicate only decisions, meaningful progress, results, and blockers. Users can run `/agent` to inspect active or completed specialist threads.
 
-```text
-Compass: compass-orchestrator · <phase> · <action> · active: <agents or none> · todo: <done>/<total>
-```
-
-Keep the line quiet and concise. Announce every specialist handoff, why it is needed, and whether it is sequential or parallel. When two or more assignments are independent and write-safe, launch their subagents in one parallel group and join all results before dependent work.
+When two or more assignments are independent and write-safe, launch their subagents in one parallel group and join all results before dependent work.
 
 ## Routing
 

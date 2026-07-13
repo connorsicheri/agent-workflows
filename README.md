@@ -155,7 +155,34 @@ Use $compass-codex:compass to handle this task.
 ```
 
 The main Codex session acts as `compass-orchestrator`; the plugin's custom TOML
-agents are spawned as specialists.
+agents are spawned as specialists. The launcher uses Codex's native TUI footer
+for model, run-state, context, and Git-branch visibility instead of printing a
+simulated Compass status line. Use `/agent` or `/subagents` to inspect and
+switch between specialist threads.
+
+### Codex Usage Cadence
+
+1. Start `compass-codex` from the repository you want to work on, or pass its
+   path as the first argument. The launcher selects the Compass orchestrator
+   model and installs the native footer for that session.
+2. Give the orchestrator the task and any material constraints. It handles
+   intake, planning, delegation, joins, review, and final verification.
+3. Follow the footer for lightweight operational state: model and reasoning,
+   `Ready` or `Working` run state, remaining context, and the current Git
+   branch. Compass does not duplicate this information in transcript messages.
+4. When specialists are active, run `/agent` or `/subagents`, select a thread,
+   and inspect its progress, tool calls, or result. Open the picker again to
+   return to the main orchestrator thread or inspect another specialist.
+5. Leave the orchestrator quiet while agent state is unchanged. It reports
+   meaningful decisions, completed joins, results, and blockers instead of
+   printing periodic waiting messages.
+6. Run `/statusline` to adjust the footer during a session. To change the
+   default used by `compass-codex`, edit the `tui.status_line` override in
+   `compass-codex/scripts/compass`. When activating the Compass skill inside an
+   already-running Codex task, use `/statusline` because the launcher override
+   was not applied.
+7. Start a new Codex thread after installing or reinstalling the plugin so the
+   latest skill and agent definitions are loaded.
 
 ### Codex Model Routing
 
@@ -182,9 +209,9 @@ sharper. For substantial code changes, it gathers focused evidence, creates an
 implementation-ready plan, delegates one write-safe execution group per
 implementer, reviews when warranted, and verifies the target working tree.
 
-Compass makes routing visible through quiet status lines and explicit
-sequential or parallel handoffs. The orchestrator owns the master TODO board;
-subagents receive bounded Context Packets and return scoped results.
+Compass uses runtime-native visibility for routing and handoffs. The
+orchestrator owns the master TODO board; subagents receive bounded Context
+Packets and return scoped results.
 
 ## Validation
 

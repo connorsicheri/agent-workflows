@@ -1,6 +1,6 @@
 {
   "name": "compass-codex",
-  "version": "0.1.0+codex.20260713182948",
+  "version": "0.1.0+codex.20260713190346",
   "description": "A routed Codex engineering workflow with planning, context, implementation, review, and verification agents.",
   "author": {
     "name": "Compass Contributors"

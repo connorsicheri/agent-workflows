@@ -36,5 +36,10 @@ grep -Fq 'model_reasoning_effort = "high"' "$PLUGIN_DIR/agents/compass-code-revi
 grep -Fq 'model = "gpt-5.6-terra"' "$PLUGIN_DIR/agents/compass-implementer.toml" || fail 'implementer must use Terra'
 grep -Fq 'model = "gpt-5.6-terra"' "$PLUGIN_DIR/agents/compass-doer.toml" || fail 'doer must use Terra'
 grep -Fq -- '-m gpt-5.6-sol -c model_reasoning_effort=medium' "$PLUGIN_DIR/scripts/compass" || fail 'orchestrator must use Sol medium'
+grep -Fq 'tui.status_line=["model-with-reasoning","run-state","context-remaining","git-branch"]' "$PLUGIN_DIR/scripts/compass" || fail 'launcher must configure the native status line'
+grep -Fq "Users can run \`/agent\`" "$PLUGIN_DIR/skills/compass/SKILL.md" || fail 'skill must document native agent visibility'
+if grep -Fq 'Compass: compass-orchestrator' "$PLUGIN_DIR/skills/compass/SKILL.md" "$PLUGIN_DIR/commands/compass.md"; then
+  fail 'Codex Compass must not emit a simulated status line'
+fi
 
 printf 'Compass Codex contracts passed.\n'
