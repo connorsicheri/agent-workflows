@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPASS_DIR="$ROOT_DIR/compass"
+COMPASS_DIR="$ROOT_DIR/compass-claude"
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -89,39 +89,28 @@ assert_file "$COMPASS_DIR/scripts/compass"
 assert_contains "$COMPASS_DIR/scripts/compass" 'if [[ "${1:-}" == "advanced" ]]'
 assert_contains "$COMPASS_DIR/scripts/compass" 'AGENT="compass-advanced-orchestrator"'
 assert_contains "$COMPASS_DIR/scripts/compass" '--print-launch'
-assert_contains "$COMPASS_DIR/scripts/compass" 'COMPASS_PLUGIN_ROOT=%q claude'
-assert_contains "$COMPASS_DIR/scripts/compass" '--settings "$STATUS_SETTINGS"'
+assert_contains "$COMPASS_DIR/scripts/compass" 'claude --plugin-dir %q --agent %q'
 assert_contains "$COMPASS_DIR/scripts/compass" '--agent "compass:$AGENT"'
 assert_contains "$COMPASS_DIR/scripts/compass" "Claude Code CLI not found on PATH"
+assert_not_contains "$COMPASS_DIR/scripts/compass" "STATUS_SETTINGS"
+assert_not_contains "$COMPASS_DIR/scripts/compass" "COMPASS_PLUGIN_ROOT"
+assert_not_contains "$COMPASS_DIR/scripts/compass" "command -v node"
 assert_file "$COMPASS_DIR/scripts/compass.ps1"
 assert_contains "$COMPASS_DIR/scripts/compass.ps1" "compass-advanced-orchestrator"
 assert_contains "$COMPASS_DIR/scripts/compass.ps1" "--print-launch"
-assert_contains "$COMPASS_DIR/scripts/compass.ps1" "ConvertTo-Json"
 assert_contains "$COMPASS_DIR/scripts/compass.ps1" "Claude Code CLI not found on PATH"
+assert_not_contains "$COMPASS_DIR/scripts/compass.ps1" "statusLine"
+assert_not_contains "$COMPASS_DIR/scripts/compass.ps1" "Get-Command node"
 tmp_compass_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_compass_dir"' EXIT
 mkdir -p "$tmp_compass_dir/bin"
 ln -s "$COMPASS_DIR/scripts/compass" "$tmp_compass_dir/bin/compass"
 symlink_launch="$("$tmp_compass_dir/bin/compass" --print-launch)"
-[[ "$symlink_launch" == *"COMPASS_PLUGIN_ROOT=$COMPASS_DIR"* ]] || fail "symlinked launcher did not resolve Compass root"
 [[ "$symlink_launch" == *"--plugin-dir $COMPASS_DIR"* ]] || fail "symlinked launcher did not use Compass plugin dir"
-assert_file "$COMPASS_DIR/bin/compass-statusline"
-[[ -x "$COMPASS_DIR/bin/compass-statusline" ]] || fail "not executable: $COMPASS_DIR/bin/compass-statusline"
-assert_file "$COMPASS_DIR/bin/compass-subagent-statusline"
-[[ -x "$COMPASS_DIR/bin/compass-subagent-statusline" ]] || fail "not executable: $COMPASS_DIR/bin/compass-subagent-statusline"
-assert_contains "$COMPASS_DIR/settings.json" '"subagentStatusLine"'
-assert_contains "$COMPASS_DIR/settings.json" '${CLAUDE_PLUGIN_ROOT}/bin/compass-subagent-statusline'
-if command -v node >/dev/null 2>&1; then
-  main_statusline_output="$(printf '%s' '{"agent":{"name":"compass-orchestrator"},"model":{"display_name":"Sonnet 5"},"workspace":{"current_dir":"/tmp/project"},"context_window":{"used_percentage":42},"cost":{"total_cost_usd":0.125}}' | "$COMPASS_DIR/bin/compass-statusline")"
-  [[ "$main_statusline_output" == *'Compass orchestrator'* ]] || fail "main status line output missing Compass agent"
-  [[ "$main_statusline_output" == *'ctx 42%'* ]] || fail "main status line output missing context"
-
-  statusline_output="$(printf '%s' '{"columns":90,"tasks":[{"id":"task-1","name":"compass-context-scout","status":"running","description":"Map existing eval and review infrastructure","tokenCount":20300,"cwd":"/tmp/project"}]}' | "$COMPASS_DIR/bin/compass-subagent-statusline")"
-  [[ "$statusline_output" == *'"id":"task-1"'* ]] || fail "subagent status line output missing task id"
-  [[ "$statusline_output" == *'Compass scout running'* ]] || fail "subagent status line output missing formatted row"
-else
-  printf 'Skipping status-line runtime checks: node not found on PATH.\n' >&2
-fi
+assert_no_file "$COMPASS_DIR/bin/compass-statusline"
+assert_no_file "$COMPASS_DIR/bin/compass-subagent-statusline"
+assert_not_contains "$COMPASS_DIR/settings.json" '"subagentStatusLine"'
+assert_not_contains "$COMPASS_DIR/settings.json" "compass-subagent-statusline"
 assert_contains "$COMPASS_DIR/commands/compass.md" "This slash command cannot change"
 assert_contains "$COMPASS_DIR/commands/compass.md" "compass advanced"
 
@@ -289,7 +278,6 @@ assert_not_contains "$COMPASS_DIR/README.md" ".compass/dashboard.html"
 assert_not_contains "$COMPASS_DIR/commands/compass.md" ".compass/dashboard.html"
 assert_not_contains "$COMPASS_DIR/skills/visibility-protocol/SKILL.md" ".compass/dashboard.html"
 assert_not_contains "$COMPASS_DIR/agents/compass-orchestrator.md" "Compass Map"
-assert_contains "$COMPASS_DIR/bin/compass-subagent-statusline" "'compass-complex-planner': 'complex-planner'"
 
 assert_contains "$COMPASS_DIR/.claude-plugin/plugin.json" "code review"
 assert_contains "$COMPASS_DIR/.claude-plugin/plugin.json" "complex planner"
@@ -337,7 +325,7 @@ assert_not_contains "$COMPASS_DIR/commands/compass.md" "compass:visual-recap"
 assert_file "$ROOT_DIR/.gitignore"
 assert_contains "$ROOT_DIR/.gitignore" "/.compass/"
 assert_contains "$ROOT_DIR/.gitignore" "/.claude/"
-assert_contains "$ROOT_DIR/.gitignore" "/compass/.compass/"
+assert_contains "$ROOT_DIR/.gitignore" "/compass-claude/.compass/"
 
 assert_not_contains "$ROOT_DIR/README.md" "/Users/"
 assert_not_contains "$COMPASS_DIR/README.md" "/Users/"

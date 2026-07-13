@@ -71,22 +71,10 @@ if ($argsList.Count -gt 0 -and ($argsList[0] -eq "-h" -or $argsList[0] -eq "--he
   exit 0
 }
 
-$statusline = Join-Path $compassDir "bin/compass-statusline"
-$statusSettings = @{
-  statusLine = @{
-    type = "command"
-    command = "node `"$statusline`""
-    padding = 1
-    refreshInterval = 5
-  }
-} | ConvertTo-Json -Compress -Depth 4
-
 if ($argsList.Count -gt 0 -and $argsList[0] -eq "--print-launch") {
   $argsList.RemoveAt(0)
   $parts = @(
     "claude",
-    "--settings",
-    (Quote-LaunchArg $statusSettings),
     "--plugin-dir",
     (Quote-LaunchArg $compassDir),
     "--agent",
@@ -106,11 +94,6 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
   exit 127
 }
 
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  Write-Error "Node.js not found on PATH: node. Compass uses node for status-line formatting."
-  exit 127
-}
-
 $extraArgs = $argsList.ToArray()
-& claude --settings $statusSettings --plugin-dir $compassDir --agent "compass:$agent" @extraArgs
+& claude --plugin-dir $compassDir --agent "compass:$agent" @extraArgs
 exit $LASTEXITCODE

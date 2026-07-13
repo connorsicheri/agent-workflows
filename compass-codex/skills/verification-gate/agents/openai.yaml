@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compass Verification Gate"
+  short_description: "Verify Compass work before completion"
+  default_prompt: "Use $verification-gate to verify this implementation."

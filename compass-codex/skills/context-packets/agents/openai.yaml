@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compass Context Packets"
+  short_description: "Prepare focused Compass agent handoffs"
+  default_prompt: "Use $context-packets to prepare this Compass handoff."

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v codex >/dev/null 2>&1; then
+  printf 'error: Codex CLI not found on PATH: codex\n' >&2
+  exit 127
+fi
+
+WORKDIR="${1:-$PWD}"
+exec codex -C "$WORKDIR" -m gpt-5.6-sol -c model_reasoning_effort=medium \
+  'Use the compass-codex:compass skill. Start a Compass session and ask what we should work on.'

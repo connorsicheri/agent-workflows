@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compass"
+  short_description: "Route engineering work through specialists"
+  default_prompt: "Use $compass to plan and implement this change."

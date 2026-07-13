@@ -1,7 +1,0 @@
-{
-  "agent": "compass-orchestrator",
-  "subagentStatusLine": {
-    "type": "command",
-    "command": "${CLAUDE_PLUGIN_ROOT}/bin/compass-subagent-statusline"
-  }
-}

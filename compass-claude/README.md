@@ -1,4 +1,4 @@
-# Compass
+# Compass for Claude Code
 
 Compass is a Claude Code plugin that turns a chat workspace into a routed
 engineering session.
@@ -17,37 +17,34 @@ conversations and context compaction.
 From the repository root on POSIX shells:
 
 ```bash
-./compass/scripts/compass
-./compass/scripts/compass advanced
+./compass-claude/scripts/compass
+./compass-claude/scripts/compass advanced
 ```
 
 From PowerShell:
 
 ```powershell
-.\compass\scripts\compass.ps1
-.\compass\scripts\compass.ps1 advanced
+.\compass-claude\scripts\compass.ps1
+.\compass-claude\scripts\compass.ps1 advanced
 ```
 
 The launcher expands those commands to Claude CLI invocations using the local
 plugin directory. To inspect the exact command:
 
 ```bash
-./compass/scripts/compass --print-launch
+./compass-claude/scripts/compass --print-launch
 ```
 
 ```powershell
-.\compass\scripts\compass.ps1 --print-launch
+.\compass-claude\scripts\compass.ps1 --print-launch
 ```
 
-You can also launch directly:
+The launchers expand to the equivalent direct Claude commands:
 
 ```bash
-claude --plugin-dir ./compass --agent compass:compass-orchestrator
-claude --plugin-dir ./compass --agent compass:compass-advanced-orchestrator
+claude --plugin-dir ./compass-claude --agent compass:compass-orchestrator
+claude --plugin-dir ./compass-claude --agent compass:compass-advanced-orchestrator
 ```
-
-The direct command skips the custom main status line, but it still loads the
-Compass plugin and agents.
 
 ### Re-centering with `/compass`
 
@@ -68,11 +65,7 @@ After launching with one of the commands above, confirm:
 
 - `@compass-orchestrator` or `@compass-advanced-orchestrator` appears in the
   startup header and is the session agent.
-- The bottom Claude Code status line starts with `Compass orchestrator` or
-  `Compass advanced`.
 - The Compass agents appear in `/agents`.
-- Active Compass subagents use compact custom rows in the Claude Code agent
-  panel.
 - A task that changes code produces a plan before implementation, then proceeds
   without an extra Compass checkpoint unless the user requests one.
 
@@ -174,7 +167,7 @@ Compass TODO Board
 ```
 
 Before launching a subagent, the orchestrator prepares a Context Packet from
-`compass/skills/context-packets/SKILL.md`: the base packet plus the relevant
+`compass-claude/skills/context-packets/SKILL.md`: the base packet plus the relevant
 subagent profile.
 
 Every Context Packet goes through the cheap Packet Quality Checklist in that

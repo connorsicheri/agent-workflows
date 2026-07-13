@@ -1,96 +1,105 @@
-# Compass Agent System
+# Compass Agent Workflows
 
-Compass is a Claude Code plugin that turns a chat into a routed engineering
-workspace. Start a Compass session once, then work normally while
-`compass-orchestrator` coordinates planning, context gathering, implementation,
-code review, and verification through focused subagents.
+Compass is a routed engineering workflow available for both Claude Code and
+Codex. Each implementation coordinates planning, repository context,
+implementation, code review, and verification through focused subagents while
+keeping the main orchestrator responsible for user alignment and final results.
+
+## Implementations
+
+| Runtime | Directory | Command | Configuration format |
+| --- | --- | --- | --- |
+| Claude Code | `compass-claude/` | `compass` | Claude plugin, Markdown agents, skills, and commands |
+| Codex | `compass-codex/` | `compass-codex` | Codex plugin, TOML agents, skills, and commands |
+
+The implementations are intentionally separate. Changes to one runtime do not
+silently change the other runtime's agent definitions, model choices, or
+launcher behavior.
 
 ## Repository Layout
 
-- `compass/.claude-plugin/plugin.json`: plugin manifest.
-- `compass/settings.json`: default session-agent and subagent status-line
-  settings.
-- `compass/scripts/compass`: POSIX launcher.
-- `compass/scripts/compass.ps1`: PowerShell launcher.
-- `compass/bin/compass-statusline`: main Claude Code status-line formatter.
-- `compass/bin/compass-subagent-statusline`: subagent panel row formatter.
-- `compass/commands/compass.md`: `/compass` recentering command.
-- `compass/agents/`: orchestrator and specialist agent definitions.
-- `compass/skills/`: internal Compass workflows and packet formats, including
-  `change-walkthrough` for local review artifacts.
+- `compass-claude/`: Claude Code implementation and its detailed README.
+- `compass-codex/`: Codex implementation and its detailed README.
+- `.agents/plugins/marketplace.json`: repo-local Codex marketplace entry.
 
-## Requirements
+## Install The Shell Commands
 
-- Claude Code CLI available as `claude`.
-- Node.js available as `node` for the status-line scripts.
-- Bash, zsh, or another shell that can run the POSIX launcher, or PowerShell
-  for the `.ps1` launcher.
+The recommended setup keeps the launchers in this checkout and exposes stable
+commands through `~/.local/bin`.
 
-## Start A Session
-
-From the repository root on macOS, Linux, or other POSIX shells:
+From the repository root:
 
 ```bash
-./compass/scripts/compass
-./compass/scripts/compass advanced
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$PWD/compass-claude/scripts/compass" "$HOME/.local/bin/compass"
+ln -sfn "$PWD/compass-codex/scripts/compass" "$HOME/.local/bin/compass-codex"
+```
+
+Add this line to `~/.zshrc` if it is not already present:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Reload the current shell:
+
+```bash
+source "$HOME/.zshrc"
+```
+
+Verify both shortcuts:
+
+```bash
+command -v compass
+command -v compass-codex
+```
+
+If you prefer aliases instead of symlinks, add these directly to `~/.zshrc`,
+replacing the checkout path when necessary:
+
+```bash
+alias compass="$HOME/Projects/agent-workflows/compass-claude/scripts/compass"
+alias compass-codex="$HOME/Projects/agent-workflows/compass-codex/scripts/compass"
+```
+
+Use either the symlink approach or the alias approach, not both.
+
+## Claude Code
+
+### Requirements
+
+- Claude Code CLI available as `claude`.
+- Bash, zsh, another POSIX shell, or PowerShell.
+
+### Start
+
+After installing the shortcut:
+
+```bash
+compass
+compass advanced
+```
+
+Without the shortcut:
+
+```bash
+./compass-claude/scripts/compass
+./compass-claude/scripts/compass advanced
 ```
 
 From PowerShell:
 
 ```powershell
-.\compass\scripts\compass.ps1
-.\compass\scripts\compass.ps1 advanced
+.\compass-claude\scripts\compass.ps1
+.\compass-claude\scripts\compass.ps1 advanced
 ```
 
-To inspect the exact Claude command without launching:
+Claude starts `compass-orchestrator` as the main session agent. Advanced mode
+starts `compass-advanced-orchestrator`. See
+[`compass-claude/README.md`](compass-claude/README.md) for the Claude-specific
+agent roles, model preferences, and workflow details.
 
-```bash
-./compass/scripts/compass --print-launch
-```
-
-```powershell
-.\compass\scripts\compass.ps1 --print-launch
-```
-
-You can also run Claude directly from the repository root:
-
-```bash
-claude --plugin-dir ./compass --agent compass:compass-orchestrator
-claude --plugin-dir ./compass --agent compass:compass-advanced-orchestrator
-```
-
-The direct command skips the custom main status line, but it still loads the
-Compass plugin and agents.
-
-## Optional PATH Setup
-
-If you want `compass` to be available as a command on POSIX systems:
-
-```bash
-mkdir -p "$HOME/.local/bin"
-ln -sf "$PWD/compass/scripts/compass" "$HOME/.local/bin/compass"
-```
-
-Make sure `$HOME/.local/bin` is on `PATH`. PowerShell users can run the `.ps1`
-launcher directly or create their own profile alias to that script.
-
-## Runtime Behavior
-
-When Compass starts, the active agent is:
-
-```text
-compass-orchestrator
-```
-
-Advanced mode starts:
-
-```text
-compass-advanced-orchestrator
-```
-
-Compass does not show model names in user-facing banners because the runtime
-model may be selected by Claude Code. The plugin still declares preferred model
-tiers internally:
+### Claude Model Routing
 
 - `compass-orchestrator`: Sonnet 5 1M max.
 - `compass-advanced-orchestrator`: Opus medium.
@@ -102,70 +111,92 @@ tiers internally:
 - `compass-implementer`: Sonnet 4.6 1M.
 - `compass-context-scout`: Haiku.
 
-`/compass` recenters an already-running chat on the Compass workflow, but it
-cannot change the main session agent after launch. For the most durable
-experience, start the session with one of the launchers above.
+The Claude implementation also includes the `change-walkthrough` skill for
+creating local HTML review artifacts from PRs, branches, worktrees, diffs, or
+explicit file lists.
 
-## Routing Model
+## Codex
 
-Compass starts with a short intake chat before deep search when that would help.
-The orchestrator asks for useful search hints first, then launches
-`compass-context-scout` only when repository evidence is needed or requested.
+### Requirements
 
-For code-changing work, Compass plans first, creates focused Context Packets,
-then delegates implementation to one `compass-implementer` per write-safe
-execution group. When extra confidence is needed, it routes the target working
-tree diff to `compass-code-reviewer` before final verification.
+- Codex CLI available as `codex`.
+- A Codex plan or workspace with access to the configured Sol, Terra, and Luna
+  models.
 
-Compass does not create implementation worktrees and does not attempt remote
-publishing from sandboxed Claude sessions. For actions such as `git push`,
-opening PRs, editing PR descriptions, or posting remote comments, Compass
-prepares local state or draft text and reports the command for the user to run
-outside the sandbox.
+### Install The Plugin
 
-## Visibility
+From the repository root:
 
-Compass is intentionally explicit about routing. It should show the user when a
-subagent is being used, why it is being used, and whether work is sequential or
-parallel.
-
-The default user-facing status line is quiet and inline:
-
-```text
-Compass: compass-orchestrator · planning · relaying planner update · active: compass-planner · todo: 1/4
+```bash
+codex plugin marketplace add "$PWD"
+codex plugin add compass-codex@personal
 ```
 
-The orchestrator owns the master Compass TODO Board. Subagents receive assigned
-TODO items and focused Context Packets, then report status back.
+Start a new Codex thread after installation or after reinstalling an update.
 
-Sequential handoff example:
+### Start
 
-```text
-Compass handoff: compass-context-scout
-Purpose: find the checkout validation code paths.
-Mode: sequential
+After installing the shortcut:
+
+```bash
+compass-codex
 ```
 
-Parallel group example:
+Without the shortcut:
+
+```bash
+./compass-codex/scripts/compass
+```
+
+You can also activate Compass inside a Codex task:
 
 ```text
-Compass parallel group 1
-Agents:
-- compass-implementer: form validation files
-- compass-implementer: validation tests
-Join condition: both agents complete without plan conflicts.
+Use $compass-codex:compass to handle this task.
 ```
+
+The main Codex session acts as `compass-orchestrator`; the plugin's custom TOML
+agents are spawned as specialists.
+
+### Codex Model Routing
+
+The Codex launcher and agent definitions pin models so inexpensive agents
+handle bounded work while stronger models make higher-risk decisions.
+
+| Role | Model | Reasoning effort |
+| --- | --- | --- |
+| `compass-orchestrator` | `gpt-5.6-sol` | `medium` |
+| `compass-context-scout` | `gpt-5.6-luna` | `low` |
+| `compass-planner` | `gpt-5.6-sol` | `xhigh` |
+| `compass-plan-auditor` | `gpt-5.6-sol` | `max` |
+| `compass-implementer` | `gpt-5.6-terra` | `medium` |
+| `compass-code-reviewer` | `gpt-5.6-sol` | `high` |
+| `compass-doer` | `gpt-5.6-terra` | `medium` |
+
+See [`compass-codex/README.md`](compass-codex/README.md) for installation and
+Codex-specific implementation details.
+
+## Shared Routing Model
+
+Compass starts with intake when user context would make repository searches
+sharper. For substantial code changes, it gathers focused evidence, creates an
+implementation-ready plan, delegates one write-safe execution group per
+implementer, reviews when warranted, and verifies the target working tree.
+
+Compass makes routing visible through quiet status lines and explicit
+sequential or parallel handoffs. The orchestrator owns the master TODO board;
+subagents receive bounded Context Packets and return scoped results.
 
 ## Validation
 
-Run the contract checks from the repository root:
+Run both contract suites from the repository root:
 
 ```bash
-./compass/scripts/test-compass-contracts.sh
+./compass-claude/scripts/test-compass-contracts.sh
+./compass-codex/scripts/test-compass-codex-contracts.sh
 ```
 
-If the Claude CLI is available, validate the plugin manifest:
+If Claude Code is available, also validate its plugin manifest:
 
 ```bash
-claude plugin validate ./compass
+claude plugin validate ./compass-claude
 ```
