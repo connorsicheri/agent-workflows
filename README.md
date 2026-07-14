@@ -173,16 +173,43 @@ switch between specialist threads.
 4. When specialists are active, run `/agent` or `/subagents`, select a thread,
    and inspect its progress, tool calls, or result. Open the picker again to
    return to the main orchestrator thread or inspect another specialist.
-5. Leave the orchestrator quiet while agent state is unchanged. It reports
-   meaningful decisions, completed joins, results, and blockers instead of
-   printing periodic waiting messages.
+5. Leave the orchestrator quiet while agent state is unchanged. Specialists
+   return final responses as completion packets, and the orchestrator uses one
+   event-driven long wait that wakes as soon as a packet arrives. It does not
+   short-poll, print repeated empty wait results, or ping agents for status.
+   Before waiting, it refreshes the agent roster and proceeds only if at least
+   one expected agent is pending or running. With no live agents, it reconciles
+   available packets or verifies the assigned work directly instead of waiting.
+   Codex may still display one native waiting entry for a valid active wait.
 6. Run `/statusline` to adjust the footer during a session. To change the
    default used by `compass-codex`, edit the `tui.status_line` override in
    `compass-codex/scripts/compass`. When activating the Compass skill inside an
    already-running Codex task, use `/statusline` because the launcher override
    was not applied.
-7. Start a new Codex thread after installing or reinstalling the plugin so the
+7. Run `/compact` when the root thread needs more context space. The Compass
+   compaction prompt preserves the user contract, TODO board, agent roster,
+   completion packets, partial joins, worktree state, validation, and exact
+   resume action. The resumed orchestrator must reconcile existing agents and
+   must not respawn or redo completed work merely because compaction occurred.
+8. Start a new Codex thread after installing or reinstalling the plugin so the
    latest skill and agent definitions are loaded.
+
+### Codex Permission Cadence
+
+The `compass-codex` launcher selects Codex's **Approve for me** behavior with
+`--ask-for-approval on-request` and `approvals_reviewer=auto_review`. Eligible
+escalation requests go to Codex's reviewer agent instead of routinely stopping
+for human approval, while the role-specific sandboxes remain intact:
+
+- Scouts, planners, plan auditors, and code reviewers are read-only.
+- Implementers and doers can write inside the selected workspace.
+
+The reviewer approves or denies eligible boundary crossings. Tool-specific or
+destructive requests that are not eligible for auto-review can still reach the
+user. The launcher does not enable unrestricted full access or automatic
+network access. When Compass is activated inside an existing Codex task instead
+of through `compass-codex`, it inherits that task's permission mode; use
+`/permissions` if you want to change it for that session.
 
 ### Codex Model Routing
 
@@ -195,7 +222,7 @@ handle bounded work while stronger models make higher-risk decisions.
 | `compass-context-scout` | `gpt-5.6-luna` | `low` |
 | `compass-planner` | `gpt-5.6-sol` | `xhigh` |
 | `compass-plan-auditor` | `gpt-5.6-sol` | `max` |
-| `compass-implementer` | `gpt-5.6-terra` | `medium` |
+| `compass-implementer` | `gpt-5.6-sol` | `medium` |
 | `compass-code-reviewer` | `gpt-5.6-sol` | `high` |
 | `compass-doer` | `gpt-5.6-terra` | `medium` |
 

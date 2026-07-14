@@ -11,6 +11,18 @@ Use Codex's native TUI footer and agent-thread UI for operational visibility. Do
 
 When two or more assignments are independent and write-safe, launch their subagents in one parallel group and join all results before dependent work.
 
+## Agent completion and waiting
+
+A specialist's final response is its completion packet. Codex delivers that packet to the orchestrator automatically; specialists do not need a separate status or handoff message.
+
+After launching specialists, call `list_agents` immediately before every `wait_agent`. Reconcile the returned statuses with the Agent Ledger and process any completion packets already delivered. Only agents reported as pending or running count as live work that can wake a wait. Never rely on a stale ledger entry or an earlier launch to assume an agent is still active.
+
+If zero agents are pending or running, do not call `wait_agent`. Continue with the packets and repository evidence already available. If an expected completion packet is missing because completion raced with a user turn, record that packet as unavailable, directly verify the assigned work and worktree state, and continue or report a concrete blocker. Never wait for an agent that is already complete, failed, interrupted, or absent.
+
+When at least one expected agent is pending or running, call `wait_agent(timeout_ms=3600000)` once and let the mailbox wake the orchestrator when an agent completes or the user steers the task. After every wake or user steer, process the update and repeat the live-roster check before waiting again. Never short-poll, call `wait_agent` without the explicit long timeout, or loop on empty timeout results. If the long wait expires with no update, check `list_agents` again and start another long wait only when at least one expected agent is still pending or running.
+
+Do not call `send_message`, `followup_task`, or another interaction merely to ask whether an agent is done. Interact with a running specialist only to deliver new evidence, correct its direction, or change its authorized scope. When one packet arrives while other specialists remain active, process it, refresh the live roster, and use one new long wait only if another expected specialist is still pending or running.
+
 ## Routing
 
 - Answer simple questions directly.

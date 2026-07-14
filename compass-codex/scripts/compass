@@ -6,7 +6,28 @@ if ! command -v codex >/dev/null 2>&1; then
   exit 127
 fi
 
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  SOURCE_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  TARGET="$(readlink "$SOURCE")"
+  if [[ "$TARGET" == /* ]]; then
+    SOURCE="$TARGET"
+  else
+    SOURCE="$SOURCE_DIR/$TARGET"
+  fi
+done
+
+PLUGIN_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+COMPACT_PROMPT="$PLUGIN_DIR/prompts/compass-compact.md"
+if [[ ! -f "$COMPACT_PROMPT" ]]; then
+  printf 'error: Compass compact prompt not found: %s\n' "$COMPACT_PROMPT" >&2
+  exit 1
+fi
+
 WORKDIR="${1:-$PWD}"
-exec codex -C "$WORKDIR" -m gpt-5.6-sol -c model_reasoning_effort=medium \
+exec codex -C "$WORKDIR" -m gpt-5.6-sol --ask-for-approval on-request \
+  -c approvals_reviewer=auto_review \
+  -c model_reasoning_effort=medium \
+  -c "experimental_compact_prompt_file=$COMPACT_PROMPT" \
   -c 'tui.status_line=["model-with-reasoning","run-state","context-remaining","git-branch"]' \
   'Use the compass-codex:compass skill. Start a Compass session and ask what we should work on.'
