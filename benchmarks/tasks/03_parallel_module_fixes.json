@@ -1,0 +1,14 @@
+{
+  "id": "03_parallel_module_fixes",
+  "title": "Three independent module fixes",
+  "category": "parallel_implementation",
+  "fixture": "fixtures/03_parallel_module_fixes",
+  "prompt": "Fix all failing behaviors in the slug, statistics, and windowing modules. The failures are independent: slugify must normalize punctuation and whitespace, median must handle even-sized inputs correctly, and chunked must retain a final partial chunk. Do not modify tests. Run the complete public test suite.",
+  "agent_validation": [
+    ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  ],
+  "grader": "graders/03_parallel_module_fixes.py",
+  "allowed_changed_files": ["app/slug.py", "app/statistics.py", "app/windowing.py"],
+  "required_changed_files": ["app/slug.py", "app/statistics.py", "app/windowing.py"],
+  "expected_compass_routing": "parallel independent lanes with one useful lane retained in root"
+}

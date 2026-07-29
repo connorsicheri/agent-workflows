@@ -1,0 +1,14 @@
+{
+  "id": "02_single_lane_pagination",
+  "title": "Focused single-lane pagination bug",
+  "category": "root_direct",
+  "fixture": "fixtures/02_single_lane_pagination",
+  "prompt": "Fix paginate in app.pagination. Pages are one-based, invalid arguments must still raise ValueError, and requesting a page beyond the available data should return an empty list. Make the smallest correct change, do not modify tests, and run the public test suite.",
+  "agent_validation": [
+    ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  ],
+  "grader": "graders/02_single_lane_pagination.py",
+  "allowed_changed_files": ["app/pagination.py"],
+  "required_changed_files": ["app/pagination.py"],
+  "expected_compass_routing": "root only; focused validation and diff inspection"
+}

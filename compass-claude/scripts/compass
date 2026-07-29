@@ -14,6 +14,8 @@ done
 
 COMPASS_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 AGENT="compass-orchestrator"
+COMPASS_LABEL="Compass"
+STATUS_LINE_SETTINGS='{"statusLine":{"type":"command","command":"\"${COMPASS_CLAUDE_ROOT}/scripts/compass-statusline.sh\"","refreshInterval":5}}'
 
 usage() {
   cat <<'EOF'
@@ -29,6 +31,7 @@ EOF
 
 if [[ "${1:-}" == "advanced" ]]; then
   AGENT="compass-advanced-orchestrator"
+  COMPASS_LABEL="Compass advanced"
   shift
 fi
 
@@ -38,7 +41,8 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 if [[ "${1:-}" == "--print-launch" ]]; then
-  printf 'claude --plugin-dir %q --agent %q' "$COMPASS_DIR" "compass:$AGENT"
+  printf 'COMPASS_CLAUDE_ROOT=%q COMPASS_CLAUDE_LABEL=%q claude --plugin-dir %q --agent %q --settings %q' \
+    "$COMPASS_DIR" "$COMPASS_LABEL" "$COMPASS_DIR" "compass:$AGENT" "$STATUS_LINE_SETTINGS"
   shift
   for arg in "$@"; do
     printf ' %q' "$arg"
@@ -52,4 +56,7 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 127
 fi
 
-exec claude --plugin-dir "$COMPASS_DIR" --agent "compass:$AGENT" "$@"
+export COMPASS_CLAUDE_ROOT="$COMPASS_DIR"
+export COMPASS_CLAUDE_LABEL="$COMPASS_LABEL"
+exec claude --plugin-dir "$COMPASS_DIR" --agent "compass:$AGENT" \
+  --settings "$STATUS_LINE_SETTINGS" "$@"

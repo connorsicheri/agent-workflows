@@ -37,8 +37,10 @@ Use this workflow for code-changing tasks inside a Compass session.
     `context-packets` skill.
 15. Use `compass-implementer` to execute the plan, launching write-safe groups
     in parallel.
-16. Use `compass-code-reviewer` on the target working tree diff when review is
-    needed before final verification.
+16. After all implementation groups have joined, use the single
+    `compass-pr-reviewer` on the complete integrated target working tree diff
+    when review is needed before final verification. Never use it for an
+    intermediate execution group.
 17. Run focused validation and apply the verification gate before final
     response.
 
@@ -55,8 +57,9 @@ packet must target that working tree directly.
 Do not route implementation through a separate integration agent. Do not ask a
 Compass subagent to create scratch worktrees, copy changes between worktrees,
 cherry-pick, merge, or integrate isolated implementation output. When review is
-needed before final verification, use `compass-code-reviewer` against the target
-working tree diff after implementation.
+needed before final verification, wait for every implementation group to join,
+then use `compass-pr-reviewer` against the complete integrated target working
+tree diff.
 
 ## Parallel Execution
 

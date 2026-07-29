@@ -1,15 +1,15 @@
 {
   "name": "compass-codex",
-  "version": "0.1.0+codex.20260714151205",
-  "description": "A routed Codex engineering workflow with planning, context, implementation, review, and verification agents.",
+  "version": "0.1.0+codex.20260729194714",
+  "description": "A root-first Codex engineering workflow that actively delegates useful independent lanes on substantial work.",
   "author": {
     "name": "Compass Contributors"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "Compass Codex",
-    "shortDescription": "Route engineering work through focused Codex agents.",
-    "longDescription": "Compass coordinates repository context, planning, scoped implementation, code review, and verification through custom Codex subagents.",
+    "shortDescription": "Accelerate substantial work with focused parallel agents.",
+    "longDescription": "Compass handles small focused tasks directly, then actively fans out useful independent planning, implementation, evidence, validation, and review lanes on substantial work.",
     "developerName": "Compass Contributors",
     "category": "Productivity",
     "capabilities": [

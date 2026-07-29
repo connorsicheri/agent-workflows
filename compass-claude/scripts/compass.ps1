@@ -56,6 +56,7 @@ Commands:
 $scriptFile = Resolve-ScriptPath -ScriptPath $PSCommandPath
 $compassDir = Split-Path -Parent (Split-Path -Parent $scriptFile)
 $agent = "compass-orchestrator"
+$compassLabel = "Compass"
 $argsList = [System.Collections.Generic.List[string]]::new()
 foreach ($arg in @($RemainingArgs)) {
   $argsList.Add($arg)
@@ -63,8 +64,19 @@ foreach ($arg in @($RemainingArgs)) {
 
 if ($argsList.Count -gt 0 -and $argsList[0] -eq "advanced") {
   $agent = "compass-advanced-orchestrator"
+  $compassLabel = "Compass advanced"
   $argsList.RemoveAt(0)
 }
+
+$powerShellCommand = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
+$statusLinePath = (Join-Path $compassDir "scripts/compass-statusline.ps1") -replace '\\', '/'
+$statusLineSettings = @{
+  statusLine = @{
+    type = "command"
+    command = "$powerShellCommand -NoProfile -File `"$statusLinePath`""
+    refreshInterval = 5
+  }
+} | ConvertTo-Json -Compress
 
 if ($argsList.Count -gt 0 -and ($argsList[0] -eq "-h" -or $argsList[0] -eq "--help")) {
   Show-Usage
@@ -78,7 +90,9 @@ if ($argsList.Count -gt 0 -and $argsList[0] -eq "--print-launch") {
     "--plugin-dir",
     (Quote-LaunchArg $compassDir),
     "--agent",
-    (Quote-LaunchArg "compass:$agent")
+    (Quote-LaunchArg "compass:$agent"),
+    "--settings",
+    (Quote-LaunchArg $statusLineSettings)
   )
 
   foreach ($arg in $argsList) {
@@ -95,5 +109,6 @@ if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
 }
 
 $extraArgs = $argsList.ToArray()
-& claude --plugin-dir $compassDir --agent "compass:$agent" @extraArgs
+$env:COMPASS_CLAUDE_LABEL = $compassLabel
+& claude --plugin-dir $compassDir --agent "compass:$agent" --settings $statusLineSettings @extraArgs
 exit $LASTEXITCODE

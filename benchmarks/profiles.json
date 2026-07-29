@@ -1,0 +1,68 @@
+[
+  {
+    "id": "codex-single-sol-low",
+    "provider": "codex",
+    "mode": "single",
+    "model": "gpt-5.6-sol",
+    "effort": "low",
+    "core": false
+  },
+  {
+    "id": "codex-single-sol-medium",
+    "provider": "codex",
+    "mode": "single",
+    "model": "gpt-5.6-sol",
+    "effort": "medium",
+    "core": false
+  },
+  {
+    "id": "codex-single-sol-high",
+    "provider": "codex",
+    "mode": "single",
+    "model": "gpt-5.6-sol",
+    "effort": "high",
+    "core": true
+  },
+  {
+    "id": "codex-compass",
+    "provider": "codex",
+    "mode": "compass",
+    "model": "gpt-5.6-sol",
+    "effort": "high",
+    "core": true,
+    "baseline_profile": "codex-single-sol-high"
+  },
+  {
+    "id": "claude-single-sonnet-low",
+    "provider": "claude",
+    "mode": "single",
+    "model": "claude-sonnet-5[1m]",
+    "effort": "low",
+    "core": false
+  },
+  {
+    "id": "claude-single-sonnet-medium",
+    "provider": "claude",
+    "mode": "single",
+    "model": "claude-sonnet-5[1m]",
+    "effort": "medium",
+    "core": false
+  },
+  {
+    "id": "claude-single-sonnet-max",
+    "provider": "claude",
+    "mode": "single",
+    "model": "claude-sonnet-5[1m]",
+    "effort": "max",
+    "core": true
+  },
+  {
+    "id": "claude-compass",
+    "provider": "claude",
+    "mode": "compass",
+    "model": "claude-sonnet-5[1m]",
+    "effort": "max",
+    "core": true,
+    "baseline_profile": "claude-single-sonnet-max"
+  }
+]

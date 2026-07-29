@@ -29,7 +29,8 @@ From PowerShell:
 ```
 
 The launcher expands those commands to Claude CLI invocations using the local
-plugin directory. To inspect the exact command:
+plugin directory and a session-scoped native status line. To inspect the exact
+command:
 
 ```bash
 ./compass-claude/scripts/compass --print-launch
@@ -39,12 +40,24 @@ plugin directory. To inspect the exact command:
 .\compass-claude\scripts\compass.ps1 --print-launch
 ```
 
-The launchers expand to the equivalent direct Claude commands:
+The agent-selection portion of the launchers is equivalent to these direct
+Claude commands:
 
 ```bash
 claude --plugin-dir ./compass-claude --agent compass:compass-orchestrator
 claude --plugin-dir ./compass-claude --agent compass:compass-advanced-orchestrator
 ```
+
+The launchers additionally pass a `--settings` override for the native status
+line. Claude plugins cannot currently provide the main `statusLine` setting,
+so launching directly or re-centering with `/compass` does not install the
+Compass bar. The override applies only to the launched session and does not
+modify user or project settings.
+
+Custom status lines execute local commands and are subject to Claude Code's
+hook policy. In managed environments with `allowManagedHooksOnly: true`, the
+Compass status-line command is suppressed unless an administrator deploys an
+equivalent managed status line. The built-in Claude footer remains visible.
 
 ### Re-centering with `/compass`
 
@@ -78,21 +91,26 @@ The role boundaries are:
 
 - `compass-orchestrator`: Sonnet 5 1M max main session agent and user-facing
   router.
-- `compass-advanced-orchestrator`: Opus medium advanced main session agent and
+- `compass-advanced-orchestrator`: Opus 5 medium advanced main session agent and
   user-facing router.
 - `compass-doer`: Sonnet 4.6 1M general execution for ordinary delegated tasks.
 - `compass-context-scout`: read-only codebase discovery.
 - `compass-planner`: read-only planning and user-alignment support.
 - `compass-complex-planner`: Fable max read-only planning for explicit complex,
   Fable, or deep-planning requests only.
-- `compass-plan-auditor`: Opus max independent read-only plan audit.
-- `compass-code-reviewer`: independent read-only review of implemented code,
-  diffs, branches, worktrees, or PR changes.
+- `compass-plan-auditor`: Opus 5 max independent read-only plan audit.
+- `compass-pr-reviewer`: the single strong end-of-task reviewer for the complete
+  integrated diff, branch, worktree, or PR.
 - `compass-implementer`: Sonnet 4.6 1M scoped implementation from an assigned
   plan.
 
 The `context-packets` skill defines how `compass-orchestrator` injects focused
 context into each subagent type.
+
+The `pr-feedback` skill handles review comments with complete thread-aware
+context, four-way triage, minimal accepted fixes, and invariant rescanning. It
+keeps checkout, commit, push, replies, thread resolution, labels, and PR-body
+updates behind explicit authorization.
 
 Compass should not launch context gathering reflexively. The orchestrator starts
 with a short intake chat when the user may have search hints or wants to talk
@@ -119,9 +137,10 @@ separate explicit tasks and should be split into a separate doer when requested
 alongside the walkthrough.
 
 Compass does not create implementation worktrees. Implementation happens
-directly in the target branch or current working tree. When extra confidence is
-needed before verification, Compass routes the target working tree diff to
-`compass-code-reviewer`.
+directly in the target branch or current working tree. When review is needed
+before verification, Compass waits for all implementation groups to join, then
+routes the complete integrated target working tree diff to the single
+`compass-pr-reviewer`.
 
 Compass does not attempt remote publishing from the Claude sandbox. For actions
 such as `git push`, opening or editing PRs, or posting remote comments, Compass
@@ -131,6 +150,23 @@ command for the user to run outside the sandbox.
 ## Visibility
 
 Compass should make routing visible instead of hiding it.
+
+When local command status lines are permitted, sessions started with `compass`
+or `compass advanced` show a native Claude Code status bar like this:
+
+```text
+Compass · Sonnet/high · ctx [=======---] 73% left · main
+```
+
+The bar shows the Compass mode, live model and effort, remaining context, and
+current Git branch. It refreshes every five seconds so branch changes made by
+background agents appear while the main agent is idle. Advanced sessions use
+`Compass advanced` as the first segment.
+
+This native bar complements the transcript status line below. The bar owns
+runtime and repository context; the transcript line still carries Compass
+phase, action, active-agent, and TODO state that Claude Code does not expose to
+status-line commands.
 
 Compass uses a quiet inline status line by default:
 
@@ -212,8 +248,11 @@ check the plan
 ```
 
 Compass routes that to `compass-plan-auditor` with an Audit Packet containing
-the current plan, TODO Board, stored context, evidence summaries, assumptions,
-risks, execution groups, and stop conditions.
+the unchanged user request and proposed plan, plus only explicit authoritative
+constraints and direct source references. The orchestrator does not add a
+rationale for the audit, suspected weaknesses, risk summaries, likely findings,
+or a review agenda; the auditor derives its own focus from a fixed
+plan-structure rubric and independent repository inspection.
 
 Audit results are:
 

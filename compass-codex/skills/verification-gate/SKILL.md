@@ -1,17 +1,17 @@
 ---
 name: verification-gate
-description: Verify Compass work before completion by checking scope, diffs, validation evidence, and unresolved risk.
+description: Apply a formal root-owned verification checklist to high-risk, strong-reviewed, or explicitly requested Compass work.
 ---
 
 # Compass Verification Gate
 
-Before declaring a task complete:
+This is a root-orchestrator checklist, not a separate agent or mandatory phase. Ordinary work uses focused validation and final diff inspection without invoking this skill.
 
-1. Compare the result with the user request and accepted plan.
-2. Inspect the final diff and confirm unrelated user changes were preserved.
+For high-risk, strong-reviewed, or explicitly requested verification:
+
+1. Compare the integrated result with the user's requested outcome.
+2. Inspect the final diff and confirm unrelated changes were preserved.
 3. Run the narrowest relevant tests, lint, type checks, builds, or contract checks.
-4. Confirm every TODO item is done or explicitly reported as blocked.
-5. Confirm review findings are resolved or disclosed.
-6. Report what was validated and any remaining uncertainty.
+4. Resolve or disclose material review findings and remaining uncertainty.
 
-Do not claim success from an implementer report alone. Verification evidence must come from the target working tree.
+Verification evidence must come from the target working tree.

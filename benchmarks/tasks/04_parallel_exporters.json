@@ -1,0 +1,14 @@
+{
+  "id": "04_parallel_exporters",
+  "title": "Independent exporter implementations",
+  "category": "parallel_planning_and_implementation",
+  "fixture": "fixtures/04_parallel_exporters",
+  "prompt": "Implement the three exporter functions in app/exporters according to their docstrings and the dispatcher contract. JSON output must be deterministic, CSV must include one header row and preserve field order, and text output must emit one key=value record per line. The exporters are independent. Do not modify tests or the dispatcher. Run the public test suite.",
+  "agent_validation": [
+    ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  ],
+  "grader": "graders/04_parallel_exporters.py",
+  "allowed_changed_files": ["app/exporters/json_exporter.py", "app/exporters/csv_exporter.py", "app/exporters/text_exporter.py"],
+  "required_changed_files": ["app/exporters/json_exporter.py", "app/exporters/csv_exporter.py", "app/exporters/text_exporter.py"],
+  "expected_compass_routing": "compact task graph and parallel write-safe exporter lanes"
+}

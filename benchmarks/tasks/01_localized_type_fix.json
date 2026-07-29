@@ -1,0 +1,14 @@
+{
+  "id": "01_localized_type_fix",
+  "title": "Localized type-contract correction",
+  "category": "root_direct",
+  "fixture": "fixtures/01_localized_type_fix",
+  "prompt": "Fix the type contract for app.tags.normalize_tags. It should return a list of normalized tags while preserving the existing runtime behavior and first-seen ordering. Make the smallest change, do not modify tests, and run the public test suite.",
+  "agent_validation": [
+    ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  ],
+  "grader": "graders/01_localized_type_fix.py",
+  "allowed_changed_files": ["app/tags.py"],
+  "required_changed_files": ["app/tags.py"],
+  "expected_compass_routing": "root only; no planner, implementer, or reviewer"
+}

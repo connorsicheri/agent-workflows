@@ -1,9 +1,10 @@
 # Compass Agent Workflows
 
-Compass is a routed engineering workflow available for both Claude Code and
-Codex. Each implementation coordinates planning, repository context,
-implementation, code review, and verification through focused subagents while
-keeping the main orchestrator responsible for user alignment and final results.
+Compass is an engineering workflow available for both Claude Code and Codex.
+Each implementation keeps the main orchestrator responsible for user alignment
+and final results. The Codex implementation works directly by default and fans
+out focused subagents only when parallelism or independent judgment adds value;
+the Claude implementation retains its own routed workflow.
 
 ## Implementations
 
@@ -99,14 +100,18 @@ starts `compass-advanced-orchestrator`. See
 [`compass-claude/README.md`](compass-claude/README.md) for the Claude-specific
 agent roles, model preferences, and workflow details.
 
+The launcher also installs a session-scoped native status bar showing the
+active Compass mode, model and effort, remaining context, and Git branch without
+modifying user or project settings.
+
 ### Claude Model Routing
 
 - `compass-orchestrator`: Sonnet 5 1M max.
-- `compass-advanced-orchestrator`: Opus medium.
-- `compass-planner`: Opus.
+- `compass-advanced-orchestrator`: Opus 5 medium.
+- `compass-planner`: Opus 5.
 - `compass-complex-planner`: Fable max, only when explicitly requested.
-- `compass-plan-auditor`: Opus max.
-- `compass-code-reviewer`: Opus.
+- `compass-plan-auditor`: Opus 5 max.
+- `compass-pr-reviewer`: Opus 5.
 - `compass-doer`: Sonnet 4.6 1M.
 - `compass-implementer`: Sonnet 4.6 1M.
 - `compass-context-scout`: Haiku.
@@ -114,6 +119,10 @@ agent roles, model preferences, and workflow details.
 The Claude implementation also includes the `change-walkthrough` skill for
 creating local HTML review artifacts from PRs, branches, worktrees, diffs, or
 explicit file lists.
+
+Both implementations include a `pr-feedback` skill that reads the full diff and
+thread state, classifies active feedback, applies only accepted fixes, and
+rescans affected invariants without automatically publishing remote changes.
 
 ## Codex
 
@@ -148,6 +157,12 @@ Without the shortcut:
 ./compass-codex/scripts/compass
 ```
 
+The Codex launcher prefers the Homebrew executable at
+`/opt/homebrew/bin/codex` or `/usr/local/bin/codex`, then falls back to `codex`
+on `PATH`. Set `CODEX_BIN` when you want to select another installation
+explicitly. This prevents an editor extension's bundled CLI from silently
+shadowing the Homebrew installation.
+
 You can also activate Compass inside a Codex task:
 
 ```text
@@ -157,8 +172,9 @@ Use $compass-codex:compass to handle this task.
 The main Codex session acts as `compass-orchestrator`; the plugin's custom TOML
 agents are spawned as specialists. The launcher uses Codex's native TUI footer
 for model, run-state, context, and Git-branch visibility instead of printing a
-simulated Compass status line. Use `/agent` or `/subagents` to inspect and
-switch between specialist threads.
+simulated Compass status line. After launching specialists, the orchestrator
+remains active and waits for their completion packets so the workflow advances
+without a manual `continue` message.
 
 ### Codex Usage Cadence
 
@@ -170,17 +186,15 @@ switch between specialist threads.
 3. Follow the footer for lightweight operational state: model and reasoning,
    `Ready` or `Working` run state, remaining context, and the current Git
    branch. Compass does not duplicate this information in transcript messages.
-4. When specialists are active, run `/agent` or `/subagents`, select a thread,
-   and inspect its progress, tool calls, or result. Open the picker again to
-   return to the main orchestrator thread or inspect another specialist.
-5. Leave the orchestrator quiet while agent state is unchanged. Specialists
-   return final responses as completion packets, and the orchestrator uses one
-   event-driven long wait that wakes as soon as a packet arrives. It does not
-   short-poll, print repeated empty wait results, or ping agents for status.
-   Before waiting, it refreshes the agent roster and proceeds only if at least
-   one expected agent is pending or running. With no live agents, it reconciles
-   available packets or verifies the assigned work directly instead of waiting.
-   Codex may still display one native waiting entry for a valid active wait.
+4. When specialists are active, Compass uses one event-driven wait. Each final
+   response is a completion packet that wakes the orchestrator immediately.
+5. If one of several specialists finishes, the orchestrator processes its
+   result, advances any newly unblocked work, refreshes the live roster, and
+   waits again only for specialists that are still pending or running. It does
+   not require a manual `continue`, short-poll, or ping agents for status.
+   A slash command or other user steer can wake the wait without completing an
+   agent; Compass refreshes the roster and waits again rather than inferring a
+   result. Specialist findings are reported only from completion packets.
 6. Run `/statusline` to adjust the footer during a session. To change the
    default used by `compass-codex`, edit the `tui.status_line` override in
    `compass-codex/scripts/compass`. When activating the Compass skill inside an
@@ -201,7 +215,7 @@ The `compass-codex` launcher selects Codex's **Approve for me** behavior with
 escalation requests go to Codex's reviewer agent instead of routinely stopping
 for human approval, while the role-specific sandboxes remain intact:
 
-- Scouts, planners, plan auditors, and code reviewers are read-only.
+- Scouts, planners, plan auditors, and PR reviewers are read-only.
 - Implementers and doers can write inside the selected workspace.
 
 The reviewer approves or denies eligible boundary crossings. Tool-specific or
@@ -218,27 +232,40 @@ handle bounded work while stronger models make higher-risk decisions.
 
 | Role | Model | Reasoning effort |
 | --- | --- | --- |
-| `compass-orchestrator` | `gpt-5.6-sol` | `medium` |
+| `compass-orchestrator` | `gpt-5.6-sol` | `high` |
 | `compass-context-scout` | `gpt-5.6-luna` | `low` |
-| `compass-planner` | `gpt-5.6-sol` | `xhigh` |
+| `compass-planner` | `gpt-5.6-sol` | `medium` |
 | `compass-plan-auditor` | `gpt-5.6-sol` | `max` |
 | `compass-implementer` | `gpt-5.6-sol` | `medium` |
-| `compass-code-reviewer` | `gpt-5.6-sol` | `high` |
-| `compass-doer` | `gpt-5.6-terra` | `medium` |
+| `compass-quick-reviewer` | `gpt-5.6-terra` | `medium` |
+| `compass-pr-reviewer` | `gpt-5.6-sol` | `high` |
+| `compass-doer` | `gpt-5.6-terra` | `low` |
 
 See [`compass-codex/README.md`](compass-codex/README.md) for installation and
 Codex-specific implementation details.
 
 ## Shared Routing Model
 
-Compass starts with intake when user context would make repository searches
-sharper. For substantial code changes, it gathers focused evidence, creates an
-implementation-ready plan, delegates one write-safe execution group per
-implementer, reviews when warranted, and verifies the target working tree.
+Compass for Codex is root-first. The orchestrator directly handles small,
+focused work. For substantial multi-file or multi-stage work, it actively looks
+for at least one bounded planning, evidence, implementation, or validation lane
+that can progress beside useful root work. Independent planners, scouts,
+implementers, and doers launch together while the root owns shared contracts
+and integration.
 
-Compass uses runtime-native visibility for routing and handoffs. The
-orchestrator owns the master TODO board; subagents receive bounded Context
-Packets and return scoped results.
+Codex review uses implementer self-check by default, an optional low-cost quick
+reviewer during one non-trivial execution group, and one strong
+`compass-pr-reviewer` at the end for explicit requests or objective high-risk
+changes. The PR reviewer runs only after all lanes have joined and reviews the
+complete integrated diff globally. Claude uses its single `compass-pr-reviewer`
+at the same final integrated-review point when review is required.
+
+## Good Engineering Practices
+
+Use the shared [Good Engineering Practices](GOOD_ENGINEERING_PRACTICES.md)
+checklist during design, implementation, and review. It distills the recurring
+correctness, clarity, testing, documentation, and maintainability signals used
+by the Compass PR reviewer.
 
 ## Validation
 
@@ -247,6 +274,20 @@ Run both contract suites from the repository root:
 ```bash
 ./compass-claude/scripts/test-compass-contracts.sh
 ./compass-codex/scripts/test-compass-codex-contracts.sh
+```
+
+## Benchmarks
+
+The [Compass benchmark suite](benchmarks/README.md) provides deterministic
+fixture repositories and matched single-agent profiles for Codex and Claude.
+It records correctness, wall-clock time, token usage, per-model usage when the
+CLI exposes it, and provider-reported cost.
+
+Validate or preview the suite without spending model tokens:
+
+```bash
+python3 benchmarks/run.py validate --check-clis
+python3 benchmarks/run.py run --profiles core --tasks all --dry-run
 ```
 
 If Claude Code is available, also validate its plugin manifest:

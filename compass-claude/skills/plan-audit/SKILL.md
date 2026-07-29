@@ -21,8 +21,10 @@ The orchestrator owns routing and TODO state.
 1. Add a TODO item for plan audit.
 2. Build an Audit Packet for `compass-plan-auditor` using the
    `context-packets` skill.
-3. Include the current plan, stored context, evidence summaries, assumptions,
-   risks, execution groups, and stop conditions.
+3. Copy the user request and complete proposed plan without editorializing.
+   Add only explicit authoritative constraints and direct source references.
+   Do not add suspected issues, risk summaries, likely findings, or a review
+   agenda.
 4. Launch `compass-plan-auditor`.
 5. Route the audit result:
    - `pass`: proceed to user alignment or implementation.

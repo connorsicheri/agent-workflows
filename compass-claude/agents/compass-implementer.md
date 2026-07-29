@@ -100,6 +100,6 @@ After implementation, return:
 - Diff summary.
 - Behavior changed.
 - Validation run.
-- Review readiness: ready for code-reviewer, blocked, or review not needed.
+- Review readiness: ready for pr-reviewer, blocked, or review not needed.
 - Remaining risks.
 - TODO item status: complete, blocked, or needs follow-up.

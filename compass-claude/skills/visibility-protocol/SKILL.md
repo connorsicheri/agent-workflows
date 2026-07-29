@@ -15,6 +15,16 @@ The user should always know:
 - When a handoff completes.
 - What the handoff changed about the next step.
 
+## Native Status Bar
+
+When local command status lines are permitted, sessions started with the
+Compass launcher have a native Claude Code status bar showing the Compass mode,
+live model and effort, remaining context, and Git branch. Managed environments
+may suppress the bar through `allowManagedHooksOnly`. Do not duplicate those
+runtime fields in transcript messages. The native bar complements, rather than
+replaces, the quiet status line below: Claude Code does not expose Compass
+phase, action, active-agent, or TODO state to the status-line command.
+
 ## Quiet Status Line
 
 Every user-facing Compass message must start with one understated inline status
@@ -109,12 +119,12 @@ handoff format instead. Do not replace this handoff with generic phrases like
 
 Compass implementation happens directly on the target branch/current working
 tree. When review is needed before verification, route the target working tree
-diff to `compass-code-reviewer`:
+diff to `compass-pr-reviewer`:
 
 ```text
-Compass: compass-orchestrator · code-review · launching code review · active: compass-code-reviewer · todo: <done>/<total>
-Compass handoff: compass-code-reviewer
-Purpose: review the target working tree diff before verification.
+Compass: compass-orchestrator · pr-review · launching final integrated review · active: compass-pr-reviewer · todo: <done>/<total>
+Compass handoff: compass-pr-reviewer
+Purpose: review the complete integrated target working tree diff before verification.
 Mode: sequential
 ```
 
@@ -122,7 +132,7 @@ After review:
 
 ```text
 Compass: compass-orchestrator · verification · summarizing review result · active: none · todo: <done>/<total>
-Compass return: compass-code-reviewer
+Compass return: compass-pr-reviewer
 Result: <one sentence>
 ```
 

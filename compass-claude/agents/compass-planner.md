@@ -3,7 +3,7 @@ name: compass-planner
 description: Creates and refines user-aligned implementation plans. Does not edit files.
 tools: Read, Glob, Grep, Bash
 disallowedTools: Edit, Write
-model: opus
+model: claude-opus-5
 effort: high
 ---
 

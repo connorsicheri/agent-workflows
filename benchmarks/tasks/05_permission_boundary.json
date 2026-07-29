@@ -1,0 +1,14 @@
+{
+  "id": "05_permission_boundary",
+  "title": "Permission-boundary correction",
+  "category": "strong_review",
+  "fixture": "fixtures/05_permission_boundary",
+  "prompt": "Fix can_edit_document in app.permissions. Administrators may edit every document. Owners may edit their own documents. Team editors may edit documents in their team. Team viewers and users from other teams must not edit documents they do not own. Preserve input immutability, do not modify tests, and run the public test suite.",
+  "agent_validation": [
+    ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]
+  ],
+  "grader": "graders/05_permission_boundary.py",
+  "allowed_changed_files": ["app/permissions.py"],
+  "required_changed_files": ["app/permissions.py"],
+  "expected_compass_routing": "root implementation followed by one strong whole-task review and formal verification"
+}

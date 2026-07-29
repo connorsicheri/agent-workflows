@@ -180,7 +180,7 @@ commands or change files:
 
 ## User-Facing Report Agents
 
-`compass-planner`, `compass-plan-auditor`, and `compass-code-reviewer` produce
+`compass-planner`, `compass-plan-auditor`, and `compass-pr-reviewer` produce
 polished reports for the user. The orchestrator should relay those reports with
 minimal framing and use the required Compass Routing Footer for routing
 decisions. Packets for these agents should ask for a complete user-facing
@@ -329,7 +329,7 @@ Expected return format:
 - Remaining risks.
 - TODO item status.
 
-### `compass-code-reviewer`
+### `compass-pr-reviewer`
 
 Use for reviewing implemented code, diffs, branches, worktrees, PR changes, or
 focused file lists. This is for actual code review after code exists; use
@@ -337,12 +337,17 @@ focused file lists. This is for actual code review after code exists; use
 
 Add:
 
-- Review target: diff, branch, PR, worktree, or file list:
-- Diff source or comparison base:
-- Files changed:
+- Review target: final integrated diff, branch, PR, or worktree:
+- Original user request and acceptance criteria:
+- Resolved user clarifications and material decisions:
+- Complete diff source or comparison base:
+- Complete files changed:
+- Existing PR description and review discussion, when available:
 - User review checklist:
 - Repository conventions to check:
 - Known risks or sensitive areas:
+- Candidate persisted state, side effects, success states, or terminal states:
+- Prior review findings and fixes, for follow-up review:
 - Tests or validation already run:
 - Areas out of scope:
 - Severity threshold for blocking:
@@ -351,7 +356,8 @@ Expected return format:
 
 - Findings ordered by severity, with file and line references where possible.
 - Open questions.
-- Review notes, including scope reviewed, checks performed, tests inspected,
+- Review notes, including whole-change scope, invariants and paths reviewed,
+  follow-up classification when applicable, checks performed, tests inspected,
   residual risk, and TODO item status.
 - Compass Routing Footer.
 
@@ -375,25 +381,38 @@ Review Evidence Requests:
 
 Use for independent plan review.
 
-Build an Audit Packet instead of the base Context Packet:
+Build a neutral Audit Packet instead of the base Context Packet. Copy the user
+request and proposed plan without editorializing or summarizing them. Include
+only explicit constraints and direct source references that the auditor could
+verify independently.
 
 ```md
 ## Audit Packet
 
-- Parent task:
-- User request:
-- Current plan:
-- TODO Board:
-- Context Packets:
-- Evidence summaries:
-- Planner assumptions:
-- Files likely involved:
-- Execution groups:
-- Risk checks:
-- Stop conditions:
-- Known constraints:
-- Expected audit output:
+### User Request
+
+<verbatim user request>
+
+### Proposed Plan
+
+<complete proposed plan, unchanged>
+
+### Explicit Constraints
+
+- <user-stated or authoritative repository/environment constraint, if any>
+
+### Source References
+
+- <direct path, command, artifact, or user-provided source the plan relied on,
+  if any; no interpretation>
 ```
+
+Do not tell the auditor why the plan was selected for audit. Do not supply
+suspected weaknesses, likely findings, risk summaries, planner assumptions,
+or an orchestrator-authored review agenda. Do not separately restate likely
+files, execution groups, or stop conditions that are already part of the
+proposed plan. Reusable audit criteria belong in the plan-auditor agent
+instructions, not in a packet assembled for one plan.
 
 Expected return format:
 

@@ -64,9 +64,10 @@ For code-changing tasks:
 16. Proceed to implementation after presenting the plan unless the user asks
    for a manual checkpoint.
 17. Use `compass-implementer` to make changes.
-18. Use `compass-code-reviewer` when the user asks for a code review, when a
-   review is part of the plan, or when meaningful implementation risk remains
-   after implementation.
+18. After every implementation group has joined, use the single
+   `compass-pr-reviewer` when the user asks for review, review is part of the
+   plan, or meaningful implementation risk remains. Give it the complete final
+   integrated diff; never use it for an intermediate execution group.
 19. Run focused validation and apply the verification gate before the final
    response.
 
@@ -85,7 +86,7 @@ recommendation if the work becomes a substantial code change that belongs with
 `compass-implementer`.
 
 For simple and nuanced questions that do not yet need an implementation plan,
-answer directly as the Opus orchestrator. This includes explanations, tradeoff
+answer directly as the Opus 5 orchestrator. This includes explanations, tradeoff
 discussions, architecture or product reasoning, debugging theory, and "help me
 think this through" requests. If the answer needs repository evidence, gather
 that evidence with `compass-context-scout` using a focused Context Packet, then
@@ -209,7 +210,7 @@ judgment role. Follow the Packet Review Result exactly:
 
 ## User-Facing Report Agents
 
-`compass-planner`, `compass-plan-auditor`, and `compass-code-reviewer` are
+`compass-planner`, `compass-plan-auditor`, and `compass-pr-reviewer` are
 user-facing report agents. Their reports are the product. When one returns a
 plan, audit, packet review, or code review report, relay it with minimal framing
 instead of rewriting or summarizing it.
@@ -343,9 +344,10 @@ route implementation through a separate integration agent, and do not ask any
 Compass subagent to copy, cherry-pick, merge, or integrate changes from a
 scratch worktree.
 
-When a change needs extra confidence before final verification, use
-`compass-code-reviewer` on the target working tree diff after implementation.
-Route review findings back to planner, implementer, or user as needed.
+When a change needs review before final verification, wait until all
+implementation groups have joined, then use the single `compass-pr-reviewer`
+on the complete target working tree diff. Route findings back to planner,
+implementer, or user as needed.
 
 ## Planner Evidence Requests
 
@@ -396,11 +398,15 @@ The user may trigger an independent audit with phrases such as:
 - "review the plan"
 - "stress test the plan"
 - "check the plan"
-- "have Opus audit this"
+- "have Opus 5 audit this"
 
 When triggered, do not implement until the audit result is handled.
 
 Build the Audit Packet using the format defined in the context-packets skill.
+Keep it neutral: copy the user request and proposed plan without commentary,
+then add only explicit authoritative constraints and direct source references.
+Do not prime the auditor with a rationale for the audit, suspected weaknesses,
+likely findings, risk summaries, or a review agenda.
 
 Route the audit result:
 
@@ -414,17 +420,24 @@ Route the audit result:
 Also consider using `compass-plan-auditor` proactively for unusually broad or
 ambiguous plans.
 
-## Code Reviews
+## PR Reviews
 
-Use `compass-code-reviewer` when the user asks to review, inspect, critique, or
+Use `compass-pr-reviewer` when the user asks to review, inspect, critique, or
 check implemented code, a diff, branch, PR, worktree, or file list. Also use it
 when a plan explicitly includes a review step, or when implementation touches
 security, auth, permissions, migrations, public APIs, shared data contracts, or
 large multi-file behavior.
 
-Build a focused Context Packet using the `compass-code-reviewer` profile from
-the context-packets skill. Include the changed files, diff source, user review
-checklist, known risks, relevant tests, and permission constraints.
+Claude Compass has one implementation reviewer. Launch it only at the end of
+implementation, after every execution group has joined and the final integrated
+diff is ready. It reviews the complete change globally; never give it one
+intermediate group or partial diff.
+
+Build a focused Context Packet using the `compass-pr-reviewer` profile from
+the context-packets skill. Include the original request, resolved user
+clarifications, acceptance criteria, complete changed-file list and diff,
+existing PR discussion when available, known risks, relevant tests, and
+permission constraints.
 
 Route review results as follows:
 
@@ -435,7 +448,7 @@ Route review results as follows:
 - `low` findings and review notes: summarize without derailing unless the user
   asked for strict cleanup.
 - Code Review Evidence Requests: add a TODO item, gather targeted evidence with
-  the suggested agent, then return the evidence to `compass-code-reviewer`.
+  the suggested agent, then return the evidence to `compass-pr-reviewer`.
 
 Relay the reviewer report directly. Do not rewrite the findings; use the
 Compass Routing Footer only to decide whether to route fixes, gather evidence,

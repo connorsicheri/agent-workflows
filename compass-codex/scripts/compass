@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v codex >/dev/null 2>&1; then
-  printf 'error: Codex CLI not found on PATH: codex\n' >&2
+if [[ -n "${CODEX_BIN:-}" ]]; then
+  CODEX_CMD="$(command -v "$CODEX_BIN" 2>/dev/null || true)"
+elif [[ -x /opt/homebrew/bin/codex ]]; then
+  CODEX_CMD=/opt/homebrew/bin/codex
+elif [[ -x /usr/local/bin/codex ]]; then
+  CODEX_CMD=/usr/local/bin/codex
+else
+  CODEX_CMD="$(command -v codex 2>/dev/null || true)"
+fi
+
+if [[ -z "$CODEX_CMD" ]]; then
+  printf 'error: Codex CLI not found; install it or set CODEX_BIN\n' >&2
   exit 127
 fi
 
@@ -25,9 +35,9 @@ if [[ ! -f "$COMPACT_PROMPT" ]]; then
 fi
 
 WORKDIR="${1:-$PWD}"
-exec codex -C "$WORKDIR" -m gpt-5.6-sol --ask-for-approval on-request \
+exec "$CODEX_CMD" -C "$WORKDIR" -m gpt-5.6-sol --ask-for-approval on-request \
   -c approvals_reviewer=auto_review \
-  -c model_reasoning_effort=medium \
+  -c model_reasoning_effort=high \
   -c "experimental_compact_prompt_file=$COMPACT_PROMPT" \
   -c 'tui.status_line=["model-with-reasoning","run-state","context-remaining","git-branch"]' \
   'Use the compass-codex:compass skill. Start a Compass session and ask what we should work on.'
