@@ -1,11 +1,12 @@
 {
   "name": "compass-codex",
-  "version": "0.1.0+codex.20260729194714",
+  "version": "0.1.0+codex.20260807200729",
   "description": "A root-first Codex engineering workflow that actively delegates useful independent lanes on substantial work.",
   "author": {
     "name": "Compass Contributors"
   },
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Compass Codex",
     "shortDescription": "Accelerate substantial work with focused parallel agents.",

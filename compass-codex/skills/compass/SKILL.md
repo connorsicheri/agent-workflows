@@ -75,6 +75,10 @@ Do not run both quick and strong review by default. If strong review is already 
 
 The root always inspects the final diff and runs the narrowest relevant validation from the target working tree. Ordinary work does not invoke a separate verification phase or skill. Use the `verification-gate` skill only for high-risk work, a strong-reviewed task, or when the user requests formal verification.
 
+## Langfuse integration
+
+For Langfuse work, load the bundled `langfuse` skill before planning or implementation and use the bundled `langfuse-docs` MCP for current documentation. In environments that can run shell commands, follow the skill's CLI-first workflow for project data. Never assume the authenticated Langfuse project MCP is configured; if the user wants it, treat setup as explicit and preserve approval boundaries for its write and delete tools.
+
 ## Agent completion and waiting
 
 A specialist's final response is its completion packet. After launching specialists, process root-owned work before waiting. When no root work remains, call `list_agents`; wait only if an expected specialist is pending or running.

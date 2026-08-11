@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "langfuse-docs": {
+      "type": "http",
+      "url": "https://langfuse.com/api/mcp",
+      "default_tools_approval_mode": "writes"
+    }
+  }
+}

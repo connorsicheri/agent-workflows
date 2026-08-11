@@ -65,6 +65,18 @@ context, four-way triage, minimal accepted fixes, and invariant rescanning. It
 does not checkout, commit, push, reply, resolve threads, label PRs, or update PR
 bodies without explicit authorization.
 
+## Langfuse integration
+
+Compass bundles the official Langfuse Agent Skill for tracing,
+prompt-management, dataset, evaluation, migration, and error-analysis
+workflows. It also registers the unauthenticated `langfuse-docs` MCP so
+Compass can search and retrieve current Langfuse documentation.
+
+The authenticated project-data MCP remains an explicit per-user setup because
+its endpoint depends on the Langfuse region and it exposes read, write, and
+delete tools. See [Langfuse in Compass Codex](docs/langfuse.md) for credentials,
+MCP endpoints, capabilities, safety controls, and verification.
+
 ## Local installation
 
 From the repository root:

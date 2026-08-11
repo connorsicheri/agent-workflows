@@ -26,10 +26,15 @@ assert_not_contains() {
 
 for path in \
   "$PLUGIN_DIR/.codex-plugin/plugin.json" \
+  "$PLUGIN_DIR/.mcp.json" \
   "$PLUGIN_DIR/skills/compass/SKILL.md" \
   "$PLUGIN_DIR/skills/context-packets/SKILL.md" \
   "$PLUGIN_DIR/skills/pr-feedback/SKILL.md" \
   "$PLUGIN_DIR/skills/verification-gate/SKILL.md" \
+  "$PLUGIN_DIR/skills/langfuse/SKILL.md" \
+  "$PLUGIN_DIR/skills/langfuse/LICENSE" \
+  "$PLUGIN_DIR/skills/langfuse/UPSTREAM.md" \
+  "$PLUGIN_DIR/docs/langfuse.md" \
   "$PLUGIN_DIR/prompts/compass-compact.md" \
   "$PLUGIN_DIR/commands/compass.md"; do
   [[ -f "$path" ]] || fail "missing file: $path"
@@ -47,6 +52,10 @@ COMMAND="$PLUGIN_DIR/commands/compass.md"
 PACKETS="$PLUGIN_DIR/skills/context-packets/SKILL.md"
 VERIFY="$PLUGIN_DIR/skills/verification-gate/SKILL.md"
 PR_FEEDBACK="$PLUGIN_DIR/skills/pr-feedback/SKILL.md"
+LANGFUSE="$PLUGIN_DIR/skills/langfuse/SKILL.md"
+LANGFUSE_GUIDE="$PLUGIN_DIR/docs/langfuse.md"
+MCP="$PLUGIN_DIR/.mcp.json"
+MANIFEST="$PLUGIN_DIR/.codex-plugin/plugin.json"
 
 # Root-first routing scenarios.
 assert_contains "$SKILL" 'Work directly in the root orchestrator for small, focused work.' 'root-first execution must be the default'
@@ -64,6 +73,20 @@ assert_contains "$COMMAND" 'start with the root-first path' 'Compass command mus
 assert_contains "$COMMAND" 'actively look for at least one bounded specialist lane' 'Compass command must seek delegation on substantial work'
 assert_not_contains "$SKILL" 'For code-changing work, follow this loop:' 'skill must not restore a mandatory code-change pipeline'
 assert_not_contains "$SKILL" 'Implementation Launch Gate' 'skill must not require the removed launch gate'
+
+# Langfuse is available inside Compass without silently granting project access.
+assert_contains "$MANIFEST" '"mcpServers": "./.mcp.json"' 'manifest must register plugin-provided MCP servers'
+assert_contains "$MCP" '"langfuse-docs"' 'public Langfuse Docs MCP must be registered'
+assert_contains "$MCP" '"https://langfuse.com/api/mcp"' 'Langfuse Docs MCP must use the official endpoint'
+assert_contains "$MCP" '"default_tools_approval_mode": "writes"' 'Langfuse Docs MCP must prompt before write tools'
+assert_not_contains "$MCP" '/api/public/mcp' 'authenticated Langfuse project MCP must remain opt-in'
+assert_contains "$SKILL" 'load the bundled `langfuse` skill before planning or implementation' 'Compass must route Langfuse work through the bundled skill'
+assert_contains "$LANGFUSE" 'Use the `langfuse-cli` to interact with the full Langfuse REST API' 'bundled Langfuse skill must retain the CLI-first workflow'
+assert_contains "$PLUGIN_DIR/skills/langfuse/UPSTREAM.md" 'b9958d6c7b0df35a7f1df76a5f6c3a4505b0a3d3' 'vendored Langfuse skill must record its upstream revision'
+assert_contains "$LANGFUSE_GUIDE" "base64 | tr -d '\\n'" 'project MCP token generation must not emit wrapped headers'
+assert_contains "$LANGFUSE_GUIDE" 'env_http_headers = { "Authorization" = "LANGFUSE_MCP_AUTHORIZATION" }' 'project MCP setup must keep the Basic token out of config.toml'
+assert_contains "$LANGFUSE_GUIDE" 'default_tools_approval_mode = "writes"' 'project MCP setup must prompt for write tools'
+assert_contains "$PLUGIN_DIR/README.md" 'Langfuse in Compass Codex' 'Codex README must link the Langfuse integration guide'
 
 # Planning optimizes useful concurrency without microtask fan-out.
 assert_contains "$SKILL" 'Launch independent planners together' 'independent planning lanes must run concurrently'
